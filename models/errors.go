@@ -3,6 +3,7 @@ package models
 import "strings"
 
 const (
+	ErrDuplicateRetweet modelError = "models: no duplicate retweets allowed"
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
 	ErrNotFound modelError = "models: resource not found"

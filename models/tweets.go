@@ -9,39 +9,46 @@ import (
 
 type Tweet struct {
 	// gorm.Model
-	ID         uint   `gorm:"primary_key" json:"id"`
-	Post       string `gorm:"not_null" json:"post"`
-	Username   string `gorm:"not_null;index" json:"username"`
-	LikesCount uint   `json:"likesCount"`
+	ID            uint   `gorm:"primary_key" json:"id"`
+	Post          string `gorm:"not_null" json:"post"`
+	Username      string `gorm:"not_null;index" json:"username"`
+	LikesCount    uint   `json:"likesCount"`
+	RetweetsCount uint   `json:"retweetsCount"`
+
+	// IsRetweet bool
+	Retweet   *Tweet `json:"retweet,omitempty"`
+	RetweetID uint   `json:"retweetID,omitempty"`
 
 	// Images []Image `gorm:"-"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
 type TweetService interface {
 	TweetDB
 }
 
+type tweetService struct {
+	TweetDB
+}
+
 type TweetDB interface {
 	ByID(id uint) (*Tweet, error)
 	ByUsername(username string) ([]Tweet, error)
+	ByUsernameAndRetweetID(username string, retweetID uint) (*Tweet, error)
 	// ByUsernameAndID(username string, id uint) (*Tweet, error)
 	// ByUserID(userID uint) ([]Tweet, error)
 	Create(tweet *Tweet) error
 	Update(tweet *Tweet) error
-	Delete(id uint) error
+	Delete(id uint) (*Tweet, error)
+	// CreateRetweet(tweet *Tweet) error
 }
 
 func NewTweetService(db *gorm.DB) TweetService {
 	return &tweetService{
 		TweetDB: &tweetValidator{&tweetGorm{db}},
 	}
-}
-
-type tweetService struct {
-	TweetDB
 }
 
 type tweetValidator struct {
@@ -52,12 +59,23 @@ func (tv *tweetValidator) Create(tweet *Tweet) error {
 	err := runTweetValFuncs(tweet,
 		// tv.userIDRequired,
 		tv.usernameRequired,
-		tv.postRequired)
+		tv.postRequired,
+		tv.retweetOnlyOnce)
 	if err != nil {
 		return err
 	}
 	return tv.TweetDB.Create(tweet)
 }
+
+// func (tv *tweetValidator) CreateRetweet(tweet *Tweet) error {
+// 	err := runTweetValFuncs(tweet,
+// 		tv.usernameRequired,
+// 		tv.retweetOnlyOnce)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return tv.TweetDB.Create(tweet)
+// }
 
 func (tv *tweetValidator) Update(tweet *Tweet) error {
 	err := runTweetValFuncs(tweet,
@@ -70,12 +88,20 @@ func (tv *tweetValidator) Update(tweet *Tweet) error {
 }
 
 // Delete will delete the tweet with the provided ID
-func (tv *tweetValidator) Delete(id uint) error {
+func (tv *tweetValidator) Delete(id uint) (*Tweet, error) {
 	if id <= 0 {
-		return ErrIDInvalid
+		return nil, ErrIDInvalid
 	}
-	return tv.TweetDB.Delete(id)
+	tweet, err := tv.TweetDB.Delete(id)
+	return tweet, err
 
+}
+
+func (tv *tweetValidator) usernameRequired(t *Tweet) error {
+	if t.Username == "" {
+		return ErrUsernameRequired
+	}
+	return nil
 }
 
 // func (tv *tweetValidator) userIDRequired(t *Tweet) error {
@@ -85,17 +111,45 @@ func (tv *tweetValidator) Delete(id uint) error {
 // 	return nil
 // }
 
-func (tv *tweetValidator) usernameRequired(t *Tweet) error {
-	if t.Username == "" {
-		return ErrUsernameRequired
+// func (tv *tweetValidator) usernameRequired(t *Tweet) error {
+// 	if t.Username == "" {
+// 		return ErrUsernameRequired
+// 	}
+// 	return nil
+// }
+
+func (tv *tweetValidator) postRequired(t *Tweet) error {
+	if t.RetweetID > 0 {
+		return nil
+	}
+	if t.Post == "" {
+		return ErrPostRequired
 	}
 	return nil
 }
 
-func (tv *tweetValidator) postRequired(t *Tweet) error {
-	if t.Post == "" {
-		return ErrPostRequired
+func (tv *tweetValidator) retweetOnlyOnce(t *Tweet) error {
+	//check if this tweet is a retweet
+	if t.RetweetID <= 0 {
+		return nil
 	}
+	existing, err := tv.ByUsernameAndRetweetID(t.Username, t.RetweetID)
+	if err == ErrNotFound {
+		// tweet has not been retweeted by the user
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		return ErrDuplicateRetweet
+	}
+	// // We found a user w/ this email address...
+	// // If the found user has the same ID as this user, it is
+	// // an update and this is the same user.
+	// if t.ID != existing.ID {
+	// 	return ErrEmailTaken
+	// }
 	return nil
 }
 
@@ -129,6 +183,14 @@ func (tg *tweetGorm) ByUsername(username string) ([]Tweet, error) {
 	return tweets, nil
 }
 
+func (tg *tweetGorm) ByUsernameAndRetweetID(username string, retweetID uint) (*Tweet, error) {
+	var tweet Tweet
+	db := tg.db.Where("username = ? AND retweet_id = ?", username, retweetID)
+	err := first(db, &tweet)
+	return &tweet, err
+
+}
+
 // func (tg *tweetGorm) ByUserID(userID uint) ([]Tweet, error) {
 // 	var tweets []Tweet
 // 	err := tg.db.Where("user_id = ?", userID).Find(&tweets).Error
@@ -146,9 +208,10 @@ func (tg *tweetGorm) Update(tweet *Tweet) error {
 	return tg.db.Save(tweet).Error
 }
 
-func (tg *tweetGorm) Delete(id uint) error {
+func (tg *tweetGorm) Delete(id uint) (*Tweet, error) {
 	tweet := Tweet{ID: id}
-	return tg.db.Delete(&tweet).Error
+	err := tg.db.Delete(&tweet).Error
+	return &tweet, err
 }
 
 type tweetValFunc func(*Tweet) error

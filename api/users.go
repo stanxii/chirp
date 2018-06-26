@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -69,7 +70,6 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := u.us.Create(&user); err != nil {
 		RenderAPIError(w, errors.SetCustomError(err))
-
 		return
 	}
 	u.emailer.Welcome(user.Name, user.Email)
@@ -84,6 +84,34 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 type LoginForm struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// /GET /:username
+func (u *Users) Show(w http.ResponseWriter, r *http.Request) {
+	user := u.getUser(w, r)
+	if user == nil {
+		return
+	}
+	Render(w, user)
+}
+
+func (u *Users) getUser(w http.ResponseWriter, r *http.Request) *models.User {
+	vars := mux.Vars(r)
+	username := vars["username"]
+	user, err := u.us.ByUsername(username)
+	if err != nil {
+		switch err {
+		case models.ErrNotFound:
+			RenderAPIError(w, errors.NotFound("User"))
+		default:
+			log.Println(err)
+			RenderAPIError(w, errors.InternalServerError(err))
+		}
+		return nil
+	}
+	// userWithLikes, err := u.us.UserDB.GetLikes(user)
+	// err = u.us.AttachAssociations(user)
+	return user
 }
 
 // Login is used to verify the provided email address and
@@ -175,17 +203,16 @@ func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
 
 // GET /:username/likes
 func (u *Users) GetLikes(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	username := vars["username"]
-	// if username == "" {
-	// 	RenderAPIError(w, errors.)
-	// }
-	fmt.Println(username)
-	likes, err := u.ls.ByUsername(username)
+	user := u.getUser(w, r)
+	if user == nil {
+		return
+	}
+	likes, err := u.ls.ByUsername(user.Username)
 	if err != nil {
 		RenderAPIError(w, errors.SetCustomError(err))
 	}
-	RenderJSON(w, likes, http.StatusOK)
+	user.Likes = likes
+	RenderJSON(w, user, http.StatusOK)
 }
 
 /*

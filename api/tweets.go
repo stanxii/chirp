@@ -48,7 +48,27 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 		RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
-	RenderJSON(w, tweet, http.StatusOK)
+	// RenderJSON(w, tweet, http.StatusOK)
+	Render(w, &tweet)
+}
+
+// POST /tweets/:username/:id/delete
+func (t *Tweets) Delete(w http.ResponseWriter, r *http.Request) {
+	tweet := t.tweetByID(w, r)
+	if tweet == nil {
+		return
+	}
+	user := context.User(r.Context())
+	if tweet.Username != user.Username {
+		RenderAPIError(w, errors.Unauthorized())
+		return
+	}
+	deletedTweet, err := t.ts.Delete(tweet.ID)
+	if err != nil {
+		RenderAPIError(w, errors.InternalServerError(err))
+	}
+	// RenderJSON(w, &deletedTweet, http.StatusOK)
+	Render(w, deletedTweet)
 }
 
 // Get /i/tweets
@@ -88,7 +108,7 @@ func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	user := context.User(r.Context())
 	if tweet.Username != user.Username {
-		RenderAPIError(w, errors.Unauthorized("You are not authorized to edit this tweet"))
+		RenderAPIError(w, errors.Unauthorized())
 		return
 	}
 	var form TweetForm
@@ -126,7 +146,7 @@ func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
 	RenderJSON(w, tweet, http.StatusOK)
 }
 
-func (t *Tweets) RemoveLike(w http.ResponseWriter, r *http.Request) {
+func (t *Tweets) DeleteLike(w http.ResponseWriter, r *http.Request) {
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
 		return
@@ -150,9 +170,42 @@ func (t *Tweets) GetUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := t.ls.GetUsers(tweet.ID)
 	if err != nil {
 		RenderAPIError(w, errors.NotFound("Tweet"))
+		return
 	}
 	RenderJSON(w, users, http.StatusOK)
 }
+
+// POST /tweets/:username/:id/retweet
+func (t *Tweets) CreateRetweet(w http.ResponseWriter, r *http.Request) {
+	tweet := t.tweetByID(w, r)
+	if tweet == nil {
+		return
+	}
+	user := context.User(r.Context())
+
+	retweet := models.Tweet{
+		Username:  user.Username,
+		Retweet:   tweet,
+		RetweetID: tweet.ID,
+	}
+	err := t.ts.Create(&retweet)
+	if err != nil {
+		RenderAPIError(w, errors.SetCustomError(err, &retweet))
+		return
+	}
+	RenderJSON(w, retweet, http.StatusOK)
+}
+
+// // POST /tweets/:username/:id/retweet/delete
+// func (t *Tweets) DeleteRetweet(w http.ResponseWriter, r *http.Request) {
+// 	tweet := t.tweetByID(w, r)
+// 	if tweet == nil {
+// 		return
+// 	}
+// 	user := context.User(r.Context())
+// 	err := t.ts.Delete(&tweet)
+
+// }
 
 /* HELPER METHODS */
 

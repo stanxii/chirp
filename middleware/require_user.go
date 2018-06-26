@@ -44,11 +44,12 @@ func (mw *User) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 		ctx = context.WithUser(ctx, user)
 		r = r.WithContext(ctx)
 		next(w, r)
+
 	})
 }
 
 // RequireUser assumes that User middleware has already been run
-// otherwise it will no work correctly.
+// otherwise it will not work correctly.
 type RequireUser struct {
 	User
 }

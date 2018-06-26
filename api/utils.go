@@ -7,17 +7,22 @@ import (
 	"chirp.com/errors"
 )
 
-func RenderJSON(w http.ResponseWriter, data interface{}, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	enc := json.NewEncoder(w)
-	enc.Encode(data)
+// type ResponseData struct {
+// 	Data        interface{}  `json:"data"`
+// 	CurrentUser *models.User `json:"user"`
+// }
+
+func Render(w http.ResponseWriter, data interface{}) {
+	RenderJSON(w, data, http.StatusOK)
 }
 
 func RenderAPIError(w http.ResponseWriter, err *errors.APIError) {
 	RenderJSON(w, err, err.Status)
 }
 
-// func RenderValidationError(w http.ResponseWriter, vErr *errors.ValidationError) {
-// 	RenderJSON(w, vErr, http.StatusUnprocessableEntity)
-// }
+func RenderJSON(w http.ResponseWriter, data interface{}, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	enc := json.NewEncoder(w)
+	enc.Encode(data)
+}

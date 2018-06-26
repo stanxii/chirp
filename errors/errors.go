@@ -21,8 +21,15 @@ func NotFound(resource string) *APIError {
 }
 
 // Unauthorized creates a new API error representing an authentication failure (HTTP 401)
-func Unauthorized(err string) *APIError {
-	return NewAPIError(http.StatusUnauthorized, "UNAUTHORIZED", Params{"error": err})
+func Unauthorized(msg ...string) *APIError {
+	var errMsg string
+	if len(msg) > 0 {
+		errMsg = msg[0]
+	} else {
+		//default msg
+		errMsg = "You are not authorized to modify this resource"
+	}
+	return NewAPIError(http.StatusUnauthorized, "UNAUTHORIZED", Params{"error": errMsg})
 }
 
 // InvalidData converts a data validation error into an API error (HTTP 400)
@@ -49,11 +56,11 @@ func SetCustomError(err error, data ...interface{}) *APIError {
 	}
 	apiErr := NewAPIError(http.StatusUnprocessableEntity, "UNPROCESSABLE_ENTITY", Params{"message": errorMsg})
 
-	if data != nil {
+	if len(data) >= 1 {
 		apiErr.Details = data[0]
-		if str, ok := data[1].(string); ok {
-			apiErr.Message = str
-		}
+	}
+	if len(data) >= 2 {
+		apiErr.Message = data[1].(string)
 	}
 	return apiErr
 }

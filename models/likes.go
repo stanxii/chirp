@@ -5,9 +5,9 @@ import (
 )
 
 type Like struct {
-	TweetID  uint   `gorm:"primary_key"`
-	Username string `gorm:"primary_key"`
-	Tweet    *Tweet `gorm:"foreignkey:TweedID" json:"tweet"`
+	Tweet    *Tweet `json:"tweet"`
+	TweetID  uint
+	Username string
 }
 
 type LikeService interface {
@@ -56,10 +56,11 @@ func (lg *likeGorm) Delete(id uint) error {
 
 func (lg *likeGorm) ByUsername(username string) ([]Like, error) {
 	var likes []Like
-	err := lg.db.Where("username = ?", username).Find(&likes).Error
+	err := lg.db.Preload("Tweet").Where("username = ?", username).Find(&likes).Error
 	if err != nil {
 		return nil, err
 	}
+	// err = lg.db.Model(&Like{}).Related(&)
 	return likes, nil
 }
 

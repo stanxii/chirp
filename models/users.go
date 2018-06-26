@@ -17,14 +17,15 @@ import (
 // address and a password so users can log in and gain
 // access to their content.
 type User struct {
-	ID       uint   `gorm:"primary_key" json:"-"`
-	Name     string `json:"name,omitempty"`
-	Username string `gorm:"not null;unique_index" json:"username"`
-	Email    string `gorm:"not null;unique_index" json:"email,omitempty"`
-	// Likes     []Likes    ``
+	ID        uint       `gorm:"primary_key" json:"-"`
+	Username  string     `gorm:"not null;unique_index" json:"username"`
+	Name      string     `json:"name,omitempty"`
+	Email     string     `gorm:"not null;unique_index" json:"email,omitempty"`
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	Likes []Like `gorm:"foreignkey:Username;association_foreignkey:Username" json:"likes"`
 
 	Password     string `gorm:"-" json:"-"`
 	PasswordHash string `gorm:"not null"  json:"-"`
@@ -49,7 +50,7 @@ type UserDB interface {
 	ByEmail(email string) (*User, error)
 	ByUsername(username string) (*User, error)
 	ByRemember(token string) (*User, error)
-
+	AttachAssociations(user *User) error
 	// Methods for altering users
 	Create(user *User) error
 	Update(user *User) error
@@ -189,7 +190,7 @@ type userValidator struct {
 	pepper     string
 }
 
-// ByUsername will normalize the email address before calling
+// ByUsername will normalize the username before calling
 // ByUsername on the UserDB field.
 func (uv *userValidator) ByUsername(username string) (*User, error) {
 	user := User{
@@ -279,6 +280,10 @@ func (uv *userValidator) Delete(id uint) error {
 		return err
 	}
 	return uv.UserDB.Delete(id)
+}
+
+func (uv *userValidator) AttachAssociations(user *User) error {
+	return uv.UserDB.AttachAssociations(user)
 }
 
 // bcryptPassword will hash a user's password with a
@@ -471,6 +476,9 @@ func (ug *userGorm) ByUsername(username string) (*User, error) {
 	var user User
 	db := ug.db.Where("username = ?", username)
 	err := first(db, &user)
+	// if err != nil {
+	// 	return &user, err
+	// }
 	return &user, err
 }
 
@@ -530,5 +538,23 @@ func first(db *gorm.DB, dst interface{}) error {
 	if err == gorm.ErrRecordNotFound {
 		return ErrNotFound
 	}
+
 	return err
+}
+
+func (ug *userGorm) AttachAssociations(user *User) error {
+	err := getLikes(ug.db, user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getLikes(db *gorm.DB, user *User) error {
+	err := db.Model(&user).Association("Likes").Find(&user.Likes).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

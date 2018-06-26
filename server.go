@@ -62,18 +62,22 @@ func main() {
 	subRouter := router.PathPrefix("/v1").Subrouter()
 	subRouter.HandleFunc("/i/tweets", requireUserMw.ApplyFn(tweetsAPI.Index)).Methods("GET")
 	subRouter.HandleFunc("/tweets", requireUserMw.ApplyFn(tweetsAPI.Create)).Methods("POST")
+	subRouter.HandleFunc("/tweets/{_username}/{id:[0-9]+}/delete", requireUserMw.ApplyFn(tweetsAPI.Delete)).Methods("POST")
 	subRouter.HandleFunc("/signup", usersAPI.Create).Methods("POST")
 	subRouter.HandleFunc("/login", usersAPI.Login).Methods("POST")
 	subRouter.HandleFunc("/logout", requireUserMw.ApplyFn(usersAPI.Logout)).Methods("POST")
 
 	//the handler doesn't use {_username} to look up the Tweet, but the user should be redirected to the correct username if the {_username} doesn't match the Tweet's Username
+	subRouter.HandleFunc("/{username}", usersAPI.Show).Methods("GET")
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}", tweetsAPI.Show).Methods("GET")
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/update", requireUserMw.ApplyFn(tweetsAPI.Update)).Methods("POST")
 
 	subRouter.HandleFunc("/{username}/likes", usersAPI.GetLikes).Methods("GET")
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/like", requireUserMw.ApplyFn(tweetsAPI.LikeTweet)).Methods("POST")
-	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/like/delete", requireUserMw.ApplyFn(tweetsAPI.RemoveLike)).Methods("POST")
+	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/like/delete", requireUserMw.ApplyFn(tweetsAPI.DeleteLike)).Methods("POST")
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/liked", tweetsAPI.GetUsers).Methods("GET")
+
+	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/retweet", requireUserMw.ApplyFn(tweetsAPI.CreateRetweet)).Methods("POST")
 
 	http.ListenAndServe(":3000", userMw.Apply(router))
 }
