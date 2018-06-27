@@ -3,7 +3,11 @@ package models
 import "strings"
 
 const (
-	ErrDuplicateRetweet modelError = "models: no duplicate retweets allowed"
+	ErrFollowSelf    modelError = "models: cannot follow yourself"
+	ErrFollowExists  modelError = "models: you have followed this user already"
+	ErrLikeExists    modelError = "models: you have liked this tweet already"
+	ErrRetweetExists modelError = "models: you have retweeted this tweet already"
+	// ErrFollowSelf modelError = "models: "
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
 	ErrNotFound modelError = "models: resource not found"

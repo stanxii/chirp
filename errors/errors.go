@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"log"
 	"net/http"
 )
@@ -47,14 +48,13 @@ type PublicError interface {
 }
 
 func SetCustomError(err error, data ...interface{}) *APIError {
-	var errorMsg string
+	var apiErr *APIError
 	if pErr, ok := err.(PublicError); ok {
-		errorMsg = pErr.Public()
+		apiErr = NewAPIError(http.StatusUnprocessableEntity, "UNPROCESSABLE_ENTITY", Params{"message": pErr.Public()})
 	} else {
 		log.Println(err)
-		errorMsg = GeneralErrorMsg
+		apiErr = InternalServerError(err)
 	}
-	apiErr := NewAPIError(http.StatusUnprocessableEntity, "UNPROCESSABLE_ENTITY", Params{"message": errorMsg})
 
 	if len(data) >= 1 {
 		apiErr.Details = data[0]
@@ -63,6 +63,10 @@ func SetCustomError(err error, data ...interface{}) *APIError {
 		apiErr.Message = data[1].(string)
 	}
 	return apiErr
+}
+
+func NewStdError() error {
+	return errors.New("")
 }
 
 // InvalidData converts a data validation error into an API error (HTTP 400)

@@ -5,9 +5,9 @@ import (
 )
 
 type Like struct {
-	Tweet    *Tweet `json:"tweet"`
-	TweetID  uint
-	Username string
+	Tweet   *Tweet `json:"tweet"`
+	TweetID uint   `gorm:"primary_key" json:"-"`
+	UserID  uint   `gorm:"primary_key" json:"-"`
 }
 
 type LikeService interface {
@@ -21,18 +21,56 @@ type likeService struct {
 func NewLikeService(db *gorm.DB) LikeService {
 	lg := &likeGorm{db}
 	return &likeService{
-		LikeDB: lg,
+		LikeDB: &likeValidator{lg},
 	}
+}
+
+type likeValidator struct {
+	LikeDB
 }
 
 type LikeDB interface {
 	// ByID(id uint) (*Like, error)
-	// ByUserID(userID uint) ([]Like, error)
+	GetLike(id uint, userID uint) (*Like, error)
 	Create(like *Like) error
-	ByUsername(username string) ([]Like, error)
-	Delete(id uint) error
+	Delete(id uint, userID uint) error
 	GetTotalLikes(id uint) uint
 	GetUsers(id uint) ([]User, error)
+	GetUserLikes(userID uint) ([]Tweet, error)
+}
+
+type likeValFunc func(*Like) error
+
+func runLikeValFuncs(like *Like, fns ...likeValFunc) error {
+	for _, fn := range fns {
+		if err := fn(like); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (lv *likeValidator) Create(like *Like) error {
+	err := runLikeValFuncs(like, lv.noDuplicates)
+	if err != nil {
+		return err
+	}
+	return lv.LikeDB.Create(like)
+}
+
+func (lv *likeValidator) noDuplicates(l *Like) error {
+	existing, err := lv.GetLike(l.TweetID, l.UserID)
+	if err == ErrNotFound {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if existing.TweetID == l.TweetID && existing.UserID == l.UserID {
+		return ErrLikeExists
+	}
+	return nil
 }
 
 type likeGorm struct {
@@ -42,26 +80,30 @@ type likeGorm struct {
 var _ LikeDB = &likeGorm{}
 
 func (lg *likeGorm) Create(like *Like) error {
-	if like.Username == "" {
-		return ErrUsernameRequired
-	}
 	return lg.db.Create(like).Error
 }
 
 // Delete will delete the user with the provided ID
-func (lg *likeGorm) Delete(id uint) error {
-	like := Like{TweetID: id}
+func (lg *likeGorm) Delete(id uint, userID uint) error {
+	like := Like{TweetID: id, UserID: userID}
 	return lg.db.Delete(&like).Error
 }
 
-func (lg *likeGorm) ByUsername(username string) ([]Like, error) {
-	var likes []Like
-	err := lg.db.Preload("Tweet").Where("username = ?", username).Find(&likes).Error
+func (lg *likeGorm) GetLike(id uint, userID uint) (*Like, error) {
+	var like Like
+	db := lg.db.Where("tweet_id = ? AND user_id = ? ", id, userID)
+	err := first(db, &like)
+	return &like, err
+}
+
+func (lg *likeGorm) GetUserLikes(userID uint) ([]Tweet, error) {
+	var tweets []Tweet
+	// err := lg.db.Preload("Tweet").Where("username = ?", username).Find(&likes).Error
+	err := lg.db.Table("tweets").Joins("JOIN likes ON likes.tweet_id = tweets.id AND likes.user_id = ?", userID).Scan(&tweets).Error
 	if err != nil {
 		return nil, err
 	}
-	// err = lg.db.Model(&Like{}).Related(&)
-	return likes, nil
+	return tweets, nil
 }
 
 func (lg *likeGorm) GetTotalLikes(id uint) uint {
@@ -76,7 +118,7 @@ func (lg *likeGorm) GetUsers(id uint) ([]User, error) {
 
 	err := lg.db.Table("users").
 		Select("users.username, users.name").
-		Joins("JOIN likes ON users.username = likes.username AND likes.tweet_id = ?", id).
+		Joins("JOIN likes ON users.id = likes.user_id AND likes.tweet_id = ?", id).
 		Scan(&users).
 		Error
 

@@ -46,6 +46,13 @@ func WithLike() ServicesConfig {
 	}
 }
 
+func WithFollow() ServicesConfig {
+	return func(s *Services) error {
+		s.Follow = NewFollowService(s.db)
+		return nil
+	}
+}
+
 // func WithImage() ServicesConfig {
 // 	return func(s *Services) error {
 // 		s.Image = NewImageService()
@@ -64,9 +71,10 @@ func NewServices(cfgs ...ServicesConfig) (*Services, error) {
 }
 
 type Services struct {
-	Tweet TweetService
-	User  UserService
-	Like  LikeService
+	Tweet  TweetService
+	User   UserService
+	Like   LikeService
+	Follow FollowService
 	// Image ImageService
 	db *gorm.DB
 }
@@ -92,7 +100,7 @@ func (s *Services) Close() error {
 
 // DestructiveReset drops all tables and rebuilds them
 func (s *Services) DestructiveReset() error {
-	err := s.db.DropTableIfExists(&User{}, &Tweet{}, &Like{}).Error
+	err := s.db.DropTableIfExists(&User{}, &Tweet{}, &Like{}, &Follow{}).Error
 	if err != nil {
 		return err
 	}
@@ -101,5 +109,5 @@ func (s *Services) DestructiveReset() error {
 
 // AutoMigrate will attempt to automatically migrate all tables
 func (s *Services) AutoMigrate() error {
-	return s.db.AutoMigrate(&User{}, &Tweet{}, &Like{}).Error
+	return s.db.AutoMigrate(&User{}, &Tweet{}, &Like{}, &Follow{}).Error
 }

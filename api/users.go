@@ -19,6 +19,7 @@ type Users struct {
 	us      models.UserService
 	ts      models.TweetService
 	ls      models.LikeService
+	fs      models.FollowService
 	emailer *email.Client
 }
 
@@ -26,10 +27,11 @@ type Users struct {
 // This function will panic if the templates are not
 // parsed correctly, and should only be used during
 // initial setup.
-func NewUsers(us models.UserService, ls models.LikeService, emailer *email.Client) *Users {
+func NewUsers(us models.UserService, ls models.LikeService, fs models.FollowService, emailer *email.Client) *Users {
 	return &Users{
 		us:      us,
 		ls:      ls,
+		fs:      fs,
 		emailer: emailer,
 	}
 }
@@ -69,13 +71,13 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		Password: form.Password,
 	}
 	if err := u.us.Create(&user); err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		RenderAPIError(w, errors.SetCustomError(err, &user))
 		return
 	}
 	u.emailer.Welcome(user.Name, user.Email)
 	err = u.signIn(w, &user)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		RenderAPIError(w, errors.SetCustomError(err, &user))
 		return
 	}
 	RenderJSON(w, user, http.StatusOK)
@@ -207,12 +209,80 @@ func (u *Users) GetLikes(w http.ResponseWriter, r *http.Request) {
 	if user == nil {
 		return
 	}
-	likes, err := u.ls.ByUsername(user.Username)
+	likedTweets, err := u.ls.GetUserLikes(user.ID)
 	if err != nil {
 		RenderAPIError(w, errors.SetCustomError(err))
 	}
-	user.Likes = likes
-	RenderJSON(w, user, http.StatusOK)
+	user.LikedTweets = likedTweets
+	Render(w, user)
+}
+
+// POST /:username/follow
+func (u *Users) FollowUser(w http.ResponseWriter, r *http.Request) {
+	followee := u.getUser(w, r)
+	if followee == nil {
+		return
+	}
+	follower := context.User(r.Context())
+	// //can't follow yourself
+	if followee.ID == follower.ID {
+		RenderAPIError(w, errors.SetCustomError(models.ErrFollowSelf, followee))
+		return
+	}
+	follow := models.Follow{
+		UserID:     followee.ID,
+		User:       followee,
+		FollowerID: follower.ID,
+	}
+	err := u.fs.Create(&follow)
+	if err != nil {
+		RenderAPIError(w, errors.SetCustomError(err, followee))
+		return
+	}
+	u.updateFollowCount(w, followee, follower)
+	Render(w, &follow)
+
+}
+
+// POST /:username/follow/delete
+func (u *Users) UnfollowUser(w http.ResponseWriter, r *http.Request) {
+	follower := context.User(r.Context())
+	followee := u.getUser(w, r)
+	if followee == nil {
+		return
+	}
+	follow, err := u.fs.GetFollow(followee.ID, follower.ID)
+	if err != nil {
+		RenderAPIError(w, errors.NotFound("Follow on this user"))
+		return
+	}
+	err = u.fs.Delete(follow.UserID, follower.ID)
+	if err != nil {
+		RenderAPIError(w, errors.InternalServerError(err))
+		return
+	}
+	err = u.updateFollowCount(w, followee, follower)
+	if err != nil {
+		RenderAPIError(w, errors.InternalServerError(err))
+		return
+	}
+	follow.User = followee
+	Render(w, followee)
+}
+
+func (u *Users) updateFollowCount(w http.ResponseWriter, followee, follower *models.User) error {
+	followee.FollowerCount = u.fs.GetTotalFollowers(followee.ID)
+	follower.FollowingCount = u.fs.GetTotalFollowing(follower.ID)
+	err := u.us.Update(followee)
+	if err != nil {
+		RenderAPIError(w, errors.InternalServerError(err))
+		return err
+	}
+	err = u.us.Update(follower)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 /*

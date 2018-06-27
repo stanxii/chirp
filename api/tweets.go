@@ -133,30 +133,44 @@ func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
 	}
 	user := context.User(r.Context())
 	like := models.Like{
-		Username: user.Username,
-		TweetID:  tweet.ID,
+		UserID:  user.ID,
+		TweetID: tweet.ID,
 	}
 	err := t.ls.Create(&like)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err, &tweet, "You've already liked this tweet."))
+		RenderAPIError(w, errors.SetCustomError(err, &tweet))
 		return
-		// return
 	}
-	t.updateLikesCount(w, tweet)
+	err = t.updateLikesCount(w, tweet)
+	if err != nil {
+		RenderAPIError(w, errors.InternalServerError(err))
+	}
 	RenderJSON(w, tweet, http.StatusOK)
 }
 
+//POST /:username/:id/like/delete
 func (t *Tweets) DeleteLike(w http.ResponseWriter, r *http.Request) {
+	user := context.User(r.Context())
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
 		return
 	}
-	err := t.ls.Delete(tweet.ID)
+
+	like, err := t.ls.GetLike(tweet.ID, user.ID)
 	if err != nil {
-		RenderAPIError(w, errors.NotFound("Tweet"))
+		RenderAPIError(w, errors.NotFound("Like on this tweet"))
 		return
 	}
-	t.updateLikesCount(w, tweet)
+
+	err = t.ls.Delete(like.TweetID, like.UserID)
+	if err != nil {
+		RenderAPIError(w, errors.InternalServerError(err))
+		return
+	}
+	err = t.updateLikesCount(w, tweet)
+	if err != nil {
+		RenderAPIError(w, errors.InternalServerError(err))
+	}
 	RenderJSON(w, tweet, http.StatusOK)
 
 }
@@ -209,12 +223,13 @@ func (t *Tweets) CreateRetweet(w http.ResponseWriter, r *http.Request) {
 
 /* HELPER METHODS */
 
-func (t *Tweets) updateLikesCount(w http.ResponseWriter, tweet *models.Tweet) {
+func (t *Tweets) updateLikesCount(w http.ResponseWriter, tweet *models.Tweet) error {
 	tweet.LikesCount = t.ls.GetTotalLikes(tweet.ID)
 	err := t.ts.Update(tweet)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		return err
 	}
+	return nil
 }
 
 func (t *Tweets) tweetByID(w http.ResponseWriter, r *http.Request) *models.Tweet {

@@ -142,7 +142,7 @@ func (tv *tweetValidator) retweetOnlyOnce(t *Tweet) error {
 		return err
 	}
 	if existing != nil {
-		return ErrDuplicateRetweet
+		return ErrRetweetExists
 	}
 	// // We found a user w/ this email address...
 	// // If the found user has the same ID as this user, it is

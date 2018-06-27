@@ -32,6 +32,7 @@ func main() {
 		models.WithUser(cfg.Pepper, cfg.HMACKey),
 		models.WithTweet(),
 		models.WithLike(),
+		models.WithFollow(),
 	)
 	must(err)
 	defer services.Close()
@@ -45,7 +46,7 @@ func main() {
 
 	router := mux.NewRouter().StrictSlash(true)
 	tweetsAPI := api.NewTweets(services.Tweet, services.Like, router)
-	usersAPI := api.NewUsers(services.User, services.Like, emailer)
+	usersAPI := api.NewUsers(services.User, services.Like, services.Follow, emailer)
 
 	//init middleware
 	userMw := middleware.User{
@@ -78,7 +79,9 @@ func main() {
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/liked", tweetsAPI.GetUsers).Methods("GET")
 
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/retweet", requireUserMw.ApplyFn(tweetsAPI.CreateRetweet)).Methods("POST")
+	subRouter.HandleFunc("/{username}/follow", requireUserMw.ApplyFn(usersAPI.FollowUser)).Methods("POST")
 
+	subRouter.HandleFunc("/{username}/follow/delete", requireUserMw.ApplyFn(usersAPI.UnfollowUser)).Methods("POST")
 	http.ListenAndServe(":3000", userMw.Apply(router))
 }
 

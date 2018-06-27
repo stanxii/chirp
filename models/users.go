@@ -25,7 +25,9 @@ type User struct {
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 
-	Likes []Like `gorm:"foreignkey:Username;association_foreignkey:Username" json:"likes"`
+	LikedTweets    []Tweet `gorm:"foreignkey:Username;association_foreignkey:Username" json:"likes,omitempty"`
+	FollowerCount  uint    `json:"followerCount"`
+	FollowingCount uint    `json:"followingCount"`
 
 	Password     string `gorm:"-" json:"-"`
 	PasswordHash string `gorm:"not null"  json:"-"`
@@ -50,7 +52,7 @@ type UserDB interface {
 	ByEmail(email string) (*User, error)
 	ByUsername(username string) (*User, error)
 	ByRemember(token string) (*User, error)
-	AttachAssociations(user *User) error
+	// AttachAssociations(user *User) error
 	// Methods for altering users
 	Create(user *User) error
 	Update(user *User) error
@@ -280,10 +282,6 @@ func (uv *userValidator) Delete(id uint) error {
 		return err
 	}
 	return uv.UserDB.Delete(id)
-}
-
-func (uv *userValidator) AttachAssociations(user *User) error {
-	return uv.UserDB.AttachAssociations(user)
 }
 
 // bcryptPassword will hash a user's password with a
@@ -542,19 +540,19 @@ func first(db *gorm.DB, dst interface{}) error {
 	return err
 }
 
-func (ug *userGorm) AttachAssociations(user *User) error {
-	err := getLikes(ug.db, user)
-	if err != nil {
-		return err
-	}
+// func (ug *userGorm) AttachAssociations(user *User) error {
+// 	// err := getLikes(ug.db, user)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
 
-	return nil
-}
+// 	return nil
+// }
 
-func getLikes(db *gorm.DB, user *User) error {
-	err := db.Model(&user).Association("Likes").Find(&user.Likes).Error
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func getLikes(db *gorm.DB, user *User) error {
+// 	err := db.Model(&user).Association("Likes").Find(&user.Likes).Error
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
