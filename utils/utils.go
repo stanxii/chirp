@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"unicode"
 )
 
 func RenderJSON(w http.ResponseWriter, data interface{}, status int) {
@@ -15,6 +16,15 @@ func RenderJSON(w http.ResponseWriter, data interface{}, status int) {
 
 func NormalizeText(text string) string {
 	text = strings.ToLower(text)
-	text = strings.TrimSpace(text)
+	text = TrimAllWhiteSpace(text)
 	return text
+}
+
+func TrimAllWhiteSpace(text string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, text)
 }

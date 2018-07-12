@@ -25,9 +25,12 @@ type User struct {
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 
-	LikedTweets    []Tweet `gorm:"foreignkey:Username;association_foreignkey:Username" json:"likes,omitempty"`
+	// LikedTweets    []Tweet `gorm:"foreignkey:UserID;association_foreignkey:UserID" json:"likes,omitempty"`
 	FollowerCount  uint    `json:"followerCount"`
 	FollowingCount uint    `json:"followingCount"`
+	LikedTweets    []Tweet `json:"likes,omitempty"`
+	Followers      []User  `json:"followers,omitempty"`
+	Following      []User  `json:"followng,omitempty"`
 
 	Password     string `gorm:"-" json:"-"`
 	PasswordHash string `gorm:"not null"  json:"-"`

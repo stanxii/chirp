@@ -3,10 +3,13 @@ package models
 import "strings"
 
 const (
-	ErrFollowSelf    modelError = "models: cannot follow yourself"
-	ErrFollowExists  modelError = "models: you have followed this user already"
-	ErrLikeExists    modelError = "models: you have liked this tweet already"
-	ErrRetweetExists modelError = "models: you have retweeted this tweet already"
+	ErrFollowSelf       modelError = "models: cannot follow yourself"
+	ErrFollowExists     modelError = "models: you have followed this user already"
+	ErrTagExists        modelError = "models: tag name already exists"
+	ErrTagNoSpecialChar modelError = "models: no special characters allowed"
+	ErrTaggingExists    modelError = "models: tag associated with this tweet already exists"
+	ErrLikeExists       modelError = "models: you have liked this tweet already"
+	ErrRetweetExists    modelError = "models: you have retweeted this tweet already"
 	// ErrFollowSelf modelError = "models: "
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
@@ -16,6 +19,7 @@ const (
 	ErrPasswordIncorrect modelError = "models: incorrect password provided"
 
 	ErrUsernameRequired modelError = "models: username is required"
+	ErrNameRequired     modelError = "models: name is required"
 	// ErrEmailRequired is returned when an email address is
 	// not provided when creating a user
 	ErrEmailRequired modelError = "models: email address is required"

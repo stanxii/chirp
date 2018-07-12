@@ -9,7 +9,7 @@ type Follow struct {
 	// TweetID  uint   `json:"-"`
 	// Username string `json:"-"`
 	FollowerID uint `gorm:"primary_key"`
-	UserID     uint `gorm:"primary_key"` //follower
+	UserID     uint `gorm:"primary_key"`
 	User       *User
 }
 
@@ -36,7 +36,8 @@ type FollowDB interface {
 	// ByID(id uint) (*Follow, error)
 	Create(follow *Follow) error
 	GetFollow(userID uint, followerID uint) (*Follow, error)
-	// ByUsername(username string) (*Follow, error)
+	GetUserFollowers(id uint) ([]User, error)
+	GetUserFollowing(id uint) ([]User, error)
 	Delete(userID uint, followerID uint) error
 	GetTotalFollowers(id uint) uint
 	GetTotalFollowing(id uint) uint
@@ -83,6 +84,24 @@ type followGorm struct {
 }
 
 var _ FollowDB = &followGorm{}
+
+func (fg *followGorm) GetUserFollowers(userID uint) ([]User, error) {
+	var users []User
+	err := fg.db.Table("users").Joins("JOIN follows ON follows.follower_id = id AND follows.user_id = ?", userID).Scan(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (fg *followGorm) GetUserFollowing(userID uint) ([]User, error) {
+	var users []User
+	err := fg.db.Table("users").Joins("JOIN follows ON follows.user_id = id AND follows.follower_id = ?", userID).Scan(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
 
 func (fg *followGorm) GetFollow(userID uint, followerID uint) (*Follow, error) {
 	var follow Follow

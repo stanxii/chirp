@@ -31,6 +31,8 @@ func main() {
 		models.WithLogMode(!cfg.IsProd()),
 		models.WithUser(cfg.Pepper, cfg.HMACKey),
 		models.WithTweet(),
+		models.WithTag(),
+		models.WithTagging(),
 		models.WithLike(),
 		models.WithFollow(),
 	)
@@ -45,7 +47,8 @@ func main() {
 	)
 
 	router := mux.NewRouter().StrictSlash(true)
-	tweetsAPI := api.NewTweets(services.Tweet, services.Like, router)
+	tweetsAPI := api.NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging, router)
+	tagsAPI := api.NewTags(services.Tag, services.Tagging)
 	usersAPI := api.NewUsers(services.User, services.Like, services.Follow, emailer)
 
 	//init middleware
@@ -76,13 +79,18 @@ func main() {
 	subRouter.HandleFunc("/{username}/likes", usersAPI.GetLikes).Methods("GET")
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/like", requireUserMw.ApplyFn(tweetsAPI.LikeTweet)).Methods("POST")
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/like/delete", requireUserMw.ApplyFn(tweetsAPI.DeleteLike)).Methods("POST")
-	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/liked", tweetsAPI.GetUsers).Methods("GET")
+	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/liked", tweetsAPI.GetUsersWhoLiked).Methods("GET")
 
 	subRouter.HandleFunc("/{_username}/{id:[0-9]+}/retweet", requireUserMw.ApplyFn(tweetsAPI.CreateRetweet)).Methods("POST")
 	subRouter.HandleFunc("/{username}/follow", requireUserMw.ApplyFn(usersAPI.FollowUser)).Methods("POST")
 
 	subRouter.HandleFunc("/{username}/follow/delete", requireUserMw.ApplyFn(usersAPI.UnfollowUser)).Methods("POST")
+	subRouter.HandleFunc("/{username}/followers", usersAPI.GetFollowers).Methods("GET")
+	subRouter.HandleFunc("/{username}/following", usersAPI.GetFollowing).Methods("GET")
+	subRouter.HandleFunc("/tags/{name}", tagsAPI.Show).Methods("GET")
+
 	http.ListenAndServe(":3000", userMw.Apply(router))
+
 }
 
 func must(err error) {

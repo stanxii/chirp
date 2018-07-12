@@ -270,6 +270,36 @@ func (u *Users) UnfollowUser(w http.ResponseWriter, r *http.Request) {
 	Render(w, followee)
 }
 
+// GET /:username/followers
+func (u *Users) GetFollowers(w http.ResponseWriter, r *http.Request) {
+	user := u.getUser(w, r)
+	if user == nil {
+		return
+	}
+	followers, err := u.fs.GetUserFollowers(user.ID)
+	if err != nil {
+		RenderAPIError(w, errors.SetCustomError(err))
+		return
+	}
+	user.Followers = followers
+	Render(w, user)
+}
+
+// GET /:username/following
+func (u *Users) GetFollowing(w http.ResponseWriter, r *http.Request) {
+	user := u.getUser(w, r)
+	if user == nil {
+		return
+	}
+	following, err := u.fs.GetUserFollowing(user.ID)
+	if err != nil {
+		RenderAPIError(w, errors.SetCustomError(err))
+		return
+	}
+	user.Following = following
+	Render(w, user)
+}
+
 func (u *Users) updateFollowCount(w http.ResponseWriter, followee, follower *models.User) error {
 	followee.FollowerCount = u.fs.GetTotalFollowers(followee.ID)
 	follower.FollowingCount = u.fs.GetTotalFollowing(follower.ID)

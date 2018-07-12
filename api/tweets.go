@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -8,26 +9,33 @@ import (
 	"chirp.com/context"
 	"chirp.com/errors"
 	"chirp.com/models"
+	"chirp.com/pkg/unique"
+	"chirp.com/utils"
 	"github.com/gorilla/mux"
 )
 
 type Tweets struct {
-	us models.UserService
-	ts models.TweetService
-	ls models.LikeService
-	r  *mux.Router
+	us       models.UserService
+	ts       models.TweetService
+	ls       models.LikeService
+	tagS     models.TagService
+	taggingS models.TaggingService
+	r        *mux.Router
 }
 
-func NewTweets(ts models.TweetService, ls models.LikeService, r *mux.Router) *Tweets {
+func NewTweets(ts models.TweetService, ls models.LikeService, tagS models.TagService, taggingS models.TaggingService, r *mux.Router) *Tweets {
 	return &Tweets{
-		ts: ts,
-		ls: ls,
-		r:  r,
+		ts:       ts,
+		ls:       ls,
+		tagS:     tagS,
+		taggingS: taggingS,
+		r:        r,
 	}
 }
 
 type TweetForm struct {
-	Post string `json:"post"`
+	Post string   `json:"post"`
+	Tags []string `json:"tags"`
 }
 
 // POST /tweets
@@ -42,13 +50,43 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 	tweet := models.Tweet{
 		Post:     form.Post,
 		Username: user.Username,
+		Tags:     form.Tags,
 	}
 	err = t.ts.Create(&tweet)
 	if err != nil {
 		RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
-	// RenderJSON(w, tweet, http.StatusOK)
+	fmt.Println(tweet.ID)
+
+	//create slice of unique and normalized tag names so we don't waste resources
+	//querying duplicate tag names
+	tweet.Tags = unique.Strings(tweet.Tags, utils.NormalizeText)
+	fmt.Println(tweet.Tags)
+
+	for _, name := range tweet.Tags {
+		tag := &models.Tag{
+			Name: name,
+		}
+		err := t.tagS.Create(tag)
+
+		if err != nil && err != models.ErrTagExists {
+			// fmt.Println(err)
+			// tweet.Tags[i] = name + " is invalid: " + errors.SetCustomError(err).Message
+			RenderAPIError(w, errors.SetCustomError(err, tag))
+			return
+		}
+		fmt.Println(tweet.ID)
+
+		tagging := &models.Tagging{
+			TweetID: tweet.ID,
+			TagID:   tag.ID,
+		}
+		err = t.taggingS.Create(tagging)
+		if err != nil {
+			RenderAPIError(w, errors.SetCustomError(err))
+		}
+	}
 	Render(w, &tweet)
 }
 
@@ -90,20 +128,12 @@ func (t *Tweets) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RenderJSON(w, tweet, http.StatusOK)
-
-	// user := context.User(r.Context())
-	// tweets, err := t.ts.ByUserID(user.ID)
-	// tweet, err := t.tweetByID(w, r)
-	// if err != nil {
-	// 	return
-	// }
 }
 
 //POST /tweets/:username/:id/update
 func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
-		// RenderAPIError(w, errors.NotFound("Tweet"))
 		return
 	}
 	user := context.User(r.Context())
@@ -175,7 +205,7 @@ func (t *Tweets) DeleteLike(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (t *Tweets) GetUsers(w http.ResponseWriter, r *http.Request) {
+func (t *Tweets) GetUsersWhoLiked(w http.ResponseWriter, r *http.Request) {
 	var users []models.User
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
@@ -210,15 +240,9 @@ func (t *Tweets) CreateRetweet(w http.ResponseWriter, r *http.Request) {
 	RenderJSON(w, retweet, http.StatusOK)
 }
 
-// // POST /tweets/:username/:id/retweet/delete
-// func (t *Tweets) DeleteRetweet(w http.ResponseWriter, r *http.Request) {
-// 	tweet := t.tweetByID(w, r)
-// 	if tweet == nil {
-// 		return
-// 	}
-// 	user := context.User(r.Context())
-// 	err := t.ts.Delete(&tweet)
-
+// func (t *Tweets) createTag(w http.RespnoseWriter, r *http.Request) {
+// 	var tag models.Tag
+// 	t.tagS.Create(&tag)
 // }
 
 /* HELPER METHODS */
@@ -234,13 +258,11 @@ func (t *Tweets) updateLikesCount(w http.ResponseWriter, tweet *models.Tweet) er
 
 func (t *Tweets) tweetByID(w http.ResponseWriter, r *http.Request) *models.Tweet {
 	vars := mux.Vars(r)
-	// username := utils.NormalizeText(vars["username"])
 	idStr := vars["id"]
 	idInt, err := strconv.Atoi(idStr)
 	id := uint(idInt)
 	if err != nil {
 		log.Println(err)
-		// http.Error(w, "Invalid tweet ID", http.StatusNotFound)
 		RenderAPIError(w, errors.InvalidData(err))
 		return nil
 	}
@@ -258,7 +280,5 @@ func (t *Tweets) tweetByID(w http.ResponseWriter, r *http.Request) *models.Tweet
 		}
 		return nil
 	}
-	// images, _ := t.is.ByTweetID(tweet.ID)
-	// tweet.Images = images
 	return tweet
 }
