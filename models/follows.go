@@ -87,7 +87,7 @@ var _ FollowDB = &followGorm{}
 
 func (fg *followGorm) GetUserFollowers(userID uint) ([]User, error) {
 	var users []User
-	err := fg.db.Table("users").Joins("JOIN follows ON follows.follower_id = id AND follows.user_id = ?", userID).Scan(&users).Error
+	err := fg.db.Table("users").Joins("JOIN follows ON follows.follower_id = id AND follows.user_id = ?", userID).Find(&users).Error
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (fg *followGorm) GetUserFollowers(userID uint) ([]User, error) {
 
 func (fg *followGorm) GetUserFollowing(userID uint) ([]User, error) {
 	var users []User
-	err := fg.db.Table("users").Joins("JOIN follows ON follows.user_id = id AND follows.follower_id = ?", userID).Scan(&users).Error
+	err := fg.db.Table("users").Joins("JOIN follows ON follows.user_id = id AND follows.follower_id = ?", userID).Find(&users).Error
 	if err != nil {
 		return nil, err
 	}

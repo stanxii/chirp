@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -41,7 +42,9 @@ type TweetForm struct {
 // POST /tweets
 func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 	var form TweetForm
-	err := parseJSONForm(&form, r)
+
+	dec := json.NewDecoder(r.Body)
+	err := dec.Decode(&form)
 	if err != nil {
 		RenderAPIError(w, errors.InvalidData(err))
 		return
@@ -105,7 +108,6 @@ func (t *Tweets) Delete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RenderAPIError(w, errors.InternalServerError(err))
 	}
-	// RenderJSON(w, &deletedTweet, http.StatusOK)
 	Render(w, deletedTweet)
 }
 
@@ -118,7 +120,7 @@ func (t *Tweets) Index(w http.ResponseWriter, r *http.Request) {
 		RenderAPIError(w, errors.InternalServerError(err))
 		return
 	}
-	RenderJSON(w, tweets, http.StatusOK)
+	Render(w, tweets)
 }
 
 //GET /tweets/:username/:id
@@ -127,7 +129,7 @@ func (t *Tweets) Show(w http.ResponseWriter, r *http.Request) {
 	if tweet == nil {
 		return
 	}
-	RenderJSON(w, tweet, http.StatusOK)
+	Render(w, tweet)
 }
 
 //POST /tweets/:username/:id/update
@@ -142,7 +144,8 @@ func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var form TweetForm
-	err := parseJSONForm(&form, r)
+	dec := json.NewDecoder(r.Body)
+	err := dec.Decode(&form)
 	if err != nil {
 		RenderAPIError(w, errors.InvalidData(err))
 		return
@@ -153,7 +156,7 @@ func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 		RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
-	RenderJSON(w, tweet, http.StatusOK)
+	Render(w, tweet)
 }
 
 func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +178,7 @@ func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RenderAPIError(w, errors.InternalServerError(err))
 	}
-	RenderJSON(w, tweet, http.StatusOK)
+	Render(w, tweet)
 }
 
 //POST /:username/:id/like/delete
@@ -201,7 +204,7 @@ func (t *Tweets) DeleteLike(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RenderAPIError(w, errors.InternalServerError(err))
 	}
-	RenderJSON(w, tweet, http.StatusOK)
+	Render(w, tweet)
 
 }
 
@@ -216,7 +219,7 @@ func (t *Tweets) GetUsersWhoLiked(w http.ResponseWriter, r *http.Request) {
 		RenderAPIError(w, errors.NotFound("Tweet"))
 		return
 	}
-	RenderJSON(w, users, http.StatusOK)
+	Render(w, users)
 }
 
 // POST /tweets/:username/:id/retweet
@@ -237,7 +240,7 @@ func (t *Tweets) CreateRetweet(w http.ResponseWriter, r *http.Request) {
 		RenderAPIError(w, errors.SetCustomError(err, &retweet))
 		return
 	}
-	RenderJSON(w, retweet, http.StatusOK)
+	Render(w, retweet)
 }
 
 // func (t *Tweets) createTag(w http.RespnoseWriter, r *http.Request) {

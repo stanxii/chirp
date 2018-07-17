@@ -13,8 +13,9 @@ type Tweet struct {
 	Post          string   `gorm:"not_null" json:"post"`
 	Username      string   `gorm:"not_null;index" json:"username"`
 	Tags          []string `gorm:"-" json:"tags,omitempty"`
-	LikesCount    uint     `json:"likesCount"`
-	RetweetsCount uint     `json:"retweetsCount"`
+	Taggings      []Tagging
+	LikesCount    uint `json:"likesCount"`
+	RetweetsCount uint `json:"retweetsCount"`
 
 	// IsRetweet bool
 	Retweet   *Tweet `json:"retweet,omitempty"`
@@ -24,8 +25,8 @@ type Tweet struct {
 	tags []Tag `json:"tag"`
 
 	// Images []Image `gorm:"-"`
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at,omitempty"`
+	UpdatedAt time.Time  `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
@@ -70,16 +71,6 @@ func (tv *tweetValidator) Create(tweet *Tweet) error {
 	}
 	return tv.TweetDB.Create(tweet)
 }
-
-// func (tv *tweetValidator) CreateRetweet(tweet *Tweet) error {
-// 	err := runTweetValFuncs(tweet,
-// 		tv.usernameRequired,
-// 		tv.retweetOnlyOnce)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return tv.TweetDB.Create(tweet)
-// }
 
 func (tv *tweetValidator) Update(tweet *Tweet) error {
 	err := runTweetValFuncs(tweet,
@@ -170,13 +161,6 @@ func (tg *tweetGorm) ByID(id uint) (*Tweet, error) {
 	return &tweet, err
 }
 
-// func (tg *tweetGorm) ByUsernameAndID(username string, id uint) (*Tweet, error) {
-// 	var tweet Tweet
-// 	db := tg.db.Where("username = ? AND id = ?", username, id)
-// 	err := first(db, &tweet)
-// 	return &tweet, err
-// }
-
 func (tg *tweetGorm) ByUsername(username string) ([]Tweet, error) {
 	var tweets []Tweet
 	username = utils.NormalizeText(username)
@@ -194,15 +178,6 @@ func (tg *tweetGorm) ByUsernameAndRetweetID(username string, retweetID uint) (*T
 	return &tweet, err
 
 }
-
-// func (tg *tweetGorm) ByUserID(userID uint) ([]Tweet, error) {
-// 	var tweets []Tweet
-// 	err := tg.db.Where("user_id = ?", userID).Find(&tweets).Error
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return tweets, nil
-// }
 
 func (tg *tweetGorm) Create(tweet *Tweet) error {
 	return tg.db.Create(tweet).Error

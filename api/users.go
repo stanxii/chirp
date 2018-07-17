@@ -44,22 +44,14 @@ type SignUpForm struct {
 	Password string `json:"password"`
 }
 
-func parseJSONForm(form interface{}, r *http.Request) error {
-	dec := json.NewDecoder(r.Body)
-	err := dec.Decode(&form)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Create is used to process the signup form when a user
 // submits it. This is used to create a new user account.
 //
 // POST /signup
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	var form SignUpForm
-	err := parseJSONForm(&form, r)
+	dec := json.NewDecoder(r.Body)
+	err := dec.Decode(&form)
 	if err != nil {
 		RenderAPIError(w, errors.InvalidData(err))
 		return
@@ -80,7 +72,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		RenderAPIError(w, errors.SetCustomError(err, &user))
 		return
 	}
-	RenderJSON(w, user, http.StatusOK)
+	Render(w, user)
 }
 
 type LoginForm struct {
@@ -122,7 +114,8 @@ func (u *Users) getUser(w http.ResponseWriter, r *http.Request) *models.User {
 // POST /login
 func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	var form LoginForm
-	err := parseJSONForm(&form, r)
+	dec := json.NewDecoder(r.Body)
+	err := dec.Decode(&form)
 	if err != nil {
 		RenderAPIError(w, errors.InvalidData(err))
 		return
@@ -145,8 +138,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// http.Redirect(w, r, "/tweets", http.StatusFound)
-	RenderJSON(w, user, http.StatusOK)
+	Render(w, user)
 }
 
 // signIn is used to sign the given user in via cookies
@@ -330,7 +322,7 @@ func (u *Users) InitiateReset(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	var form ResetPwForm
 	vd.Yield = &form
-	if err := parseForm(r, &form); err != nil {
+	if err := Decode(r, &form); err != nil {
 		vd.SetAlert(err)
 		u.ForgotPwView.Render(w, r, vd)
 		return
@@ -378,7 +370,7 @@ func (u *Users) CompleteReset(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	var form ResetPwForm
 	vd.Yield = &form
-	if err := parseForm(r, &form); err != nil {
+	if err := Decode(r, &form); err != nil {
 		vd.SetAlert(err)
 		u.ResetPwView.Render(w, r, vd)
 		return

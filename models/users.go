@@ -213,7 +213,9 @@ func (uv *userValidator) ByEmail(email string) (*User, error) {
 	user := User{
 		Email: email,
 	}
-	if err := runUserValFuncs(&user, uv.normalizeEmail); err != nil {
+	if err := runUserValFuncs(&user,
+		uv.normalizeEmail,
+		uv.requireEmail); err != nil {
 		return nil, err
 	}
 	return uv.UserDB.ByEmail(user.Email)
@@ -387,6 +389,7 @@ func (uv *userValidator) usernameIsAvail(user *User) error {
 
 func (uv *userValidator) normalizeEmail(user *User) error {
 	user.Email = utils.NormalizeText(user.Email)
+
 	return nil
 }
 
@@ -542,20 +545,3 @@ func first(db *gorm.DB, dst interface{}) error {
 
 	return err
 }
-
-// func (ug *userGorm) AttachAssociations(user *User) error {
-// 	// err := getLikes(ug.db, user)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-// 	return nil
-// }
-
-// func getLikes(db *gorm.DB, user *User) error {
-// 	err := db.Model(&user).Association("Likes").Find(&user.Likes).Error
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }

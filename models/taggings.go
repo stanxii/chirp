@@ -30,15 +30,9 @@ type taggingValidator struct {
 }
 
 type TaggingDB interface {
-	// ByID(id uint) (*Tagging, error)
-	// GetTag(id uint, userID uint) (*Tagging, error)
 	Create(tagging *Tagging) error
 	GetTagging(tagID uint, tweetID uint) (*Tagging, error)
 	GetTweets(id uint) ([]Tweet, error)
-	// Delete(id uint, userID uint) error
-	// GetTotalTags(id uint) uint
-	// GetUsers(id uint) ([]User, error)
-	// GetUserTags(userID uint) ([]Tweet, error)
 }
 
 type taggingValFunc func(*Tagging) error
@@ -75,29 +69,6 @@ func (tv *taggingValidator) noDuplicates(t *Tagging) error {
 	return nil
 }
 
-// func (tv *taggingValidator) Create(tagging *Tagging) error {
-// 	err := runTagValFuncs(tagging, tv.noDuplicates)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return tv.TaggingDB.Create(tagging)
-// }
-
-// func (tv *taggingValidator) noDuplicates(l *Tagging) error {
-// 	existing, err := tv.GetTagging(l.TweetID, l.UserID)
-// 	if err == ErrNotFound {
-// 		return nil
-// 	}
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if existing.TweetID == l.TweetID && existing.UserID == l.UserID {
-// 		return ErrTagExists
-// 	}
-// 	return nil
-// }
-
 type taggingGorm struct {
 	db *gorm.DB
 }
@@ -118,7 +89,7 @@ func (tg *taggingGorm) GetTagging(tagID uint, tweetID uint) (*Tagging, error) {
 func (tg *taggingGorm) GetTweets(id uint) ([]Tweet, error) {
 	var tweets []Tweet
 	// err := lg.db.Preload("Tweet").Where("username = ?", username).Find(&likes).Error
-	err := tg.db.Table("tweets").Joins("JOIN taggings ON taggings.tweet_id = tweets.id AND taggings.tag_id = ?", id).Scan(&tweets).Error
+	err := tg.db.Table("tweets").Joins("JOIN taggings ON taggings.tweet_id = tweets.id").Where("taggings.tag_id = ?", id).Find(&tweets).Error
 	if err != nil {
 		return nil, err
 	}

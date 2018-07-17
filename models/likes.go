@@ -99,7 +99,7 @@ func (lg *likeGorm) GetLike(id uint, userID uint) (*Like, error) {
 func (lg *likeGorm) GetUserLikes(userID uint) ([]Tweet, error) {
 	var tweets []Tweet
 	// err := lg.db.Preload("Tweet").Where("username = ?", username).Find(&likes).Error
-	err := lg.db.Table("tweets").Joins("JOIN likes ON likes.tweet_id = tweets.id AND likes.user_id = ?", userID).Scan(&tweets).Error
+	err := lg.db.Table("tweets").Joins("JOIN likes ON likes.tweet_id = tweets.id AND likes.user_id = ?", userID).Find(&tweets).Error
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (lg *likeGorm) GetUsers(id uint) ([]User, error) {
 	err := lg.db.Table("users").
 		Select("users.username, users.name").
 		Joins("JOIN likes ON users.id = likes.user_id AND likes.tweet_id = ?", id).
-		Scan(&users).
+		Find(&users).
 		Error
 
 	if err != nil {

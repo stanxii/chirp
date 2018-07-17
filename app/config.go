@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"encoding/json"
@@ -35,6 +35,12 @@ func DefaultPostgresConfig() PostgresConfig {
 	}
 }
 
+const (
+	dev     = "development"
+	testing = "testing"
+	prod    = "production"
+)
+
 type Config struct {
 	Port     int            `json:"port"`
 	Env      string         `json:"env"`
@@ -45,17 +51,24 @@ type Config struct {
 }
 
 func (c Config) IsProd() bool {
-	return c.Env == "prod"
+	return c.Env == prod
 }
 
 func DefaultConfig() Config {
 	return Config{
 		Port:     3000,
-		Env:      "dev",
+		Env:      dev,
 		Pepper:   "secret-random-string",
 		HMACKey:  "secret-hmac-key",
 		Database: DefaultPostgresConfig(),
 	}
+}
+
+func TestConfig() Config {
+	cfg := DefaultConfig()
+	cfg.Port = 3005
+	cfg.Database.Name = "chirp_test"
+	return cfg
 }
 
 type MailgunConfig struct {
@@ -65,7 +78,7 @@ type MailgunConfig struct {
 }
 
 func LoadConfig(configReq bool) Config {
-	f, err := os.Open(".config")
+	f, err := os.Open("../.config")
 	if err != nil {
 		if configReq {
 			panic(err)

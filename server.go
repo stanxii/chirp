@@ -6,19 +6,19 @@ import (
 	"net/http"
 
 	"chirp.com/api"
+	"chirp.com/app"
 	"chirp.com/email"
 	"chirp.com/errors"
 	"chirp.com/middleware"
 	"chirp.com/models"
 	"github.com/gorilla/mux"
-	// "old/chirp.com/models"
 )
 
 func main() {
 	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a .config file is provided before the application starts.")
 	flag.Parse()
 
-	cfg := LoadConfig(*boolPtr)
+	cfg := app.LoadConfig(*boolPtr)
 	dbCfg := cfg.Database
 
 	// load error messages
