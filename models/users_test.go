@@ -104,7 +104,7 @@ func TestByEmailValidator(t *testing.T) {
 	}{
 		"no uppercase":    {email: "Hey@GMAIL.coM", want: "hey@gmail.com"},
 		"no spaces":       {email: "  nospace @yahoo.com ", want: "nospace@yahoo.com"},
-		"no empty string": {email: " ", want: ErrEmailRequired},
+		"no empty string": {email: "", want: ErrEmailRequired},
 	}
 	for name, test := range tests {
 		var got interface{}
@@ -118,7 +118,6 @@ func TestByEmailValidator(t *testing.T) {
 				got = user.Email
 			}
 			assert.Equal(t, test.want, got)
-
 		})
 	}
 	mockDB.AssertNumberOfCalls(t, "ByEmail", dbCalls)

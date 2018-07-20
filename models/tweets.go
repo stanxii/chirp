@@ -3,26 +3,26 @@ package models
 import (
 	"time"
 
-	"chirp.com/utils"
+	"chirp.com/internal/utils"
 	"github.com/jinzhu/gorm"
 )
 
 type Tweet struct {
 	// gorm.Model
-	ID            uint     `gorm:"primary_key" json:"id"`
-	Post          string   `gorm:"not_null" json:"post"`
-	Username      string   `gorm:"not_null;index" json:"username"`
-	Tags          []string `gorm:"-" json:"tags,omitempty"`
-	Taggings      []Tagging
-	LikesCount    uint `json:"likesCount"`
-	RetweetsCount uint `json:"retweetsCount"`
+	ID            uint      `gorm:"primary_key" json:"id"`
+	Post          string    `gorm:"not_null" json:"post"`
+	Username      string    `gorm:"not_null;index" json:"username"`
+	Tags          []string  `gorm:"-" json:"tags,omitempty"`
+	Taggings      []Tagging `json:"-"`
+	LikesCount    uint      `json:"likesCount"`
+	RetweetsCount uint      `json:"retweetsCount"`
 
 	// IsRetweet bool
 	Retweet   *Tweet `json:"retweet,omitempty"`
 	RetweetID uint   `json:"retweetID,omitempty"`
 
 	//tags
-	tags []Tag `json:"tag"`
+	tags []Tag `json:"tags"`
 
 	// Images []Image `gorm:"-"`
 	CreatedAt time.Time  `json:"created_at,omitempty"`

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	"chirp.com/utils"
+	"chirp.com/internal/utils"
 	"github.com/jinzhu/gorm"
 )
 

@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"strings"
 
-	"chirp.com/api"
 	"chirp.com/context"
 	"chirp.com/errors"
+	"chirp.com/internal/utils"
 	"chirp.com/models"
 )
 
 type User struct {
-	models.UserService
+	userService models.UserService
 }
 
 func (mw *User) Apply(next http.Handler) http.HandlerFunc {
@@ -35,7 +35,7 @@ func (mw *User) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 			next(w, r)
 			return
 		}
-		user, err := mw.UserService.ByRemember(cookie.Value)
+		user, err := mw.userService.ByRemember(cookie.Value)
 		if err != nil {
 			next(w, r)
 			return
@@ -66,9 +66,21 @@ func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := context.User(r.Context())
 		if user == nil {
-			api.RenderAPIError(w, errors.Unauthorized("You must be logged in to perform this action."))
+			utils.RenderAPIError(w, errors.Unauthorized("You must be logged in to perform this action."))
 			return
 		}
 		next(w, r)
 	})
+}
+
+func NewUserMw(u models.UserService) User {
+	return User{
+		userService: u,
+	}
+}
+
+func NewRequireUserMw(userMw User) RequireUser {
+	return RequireUser{
+		User: userMw,
+	}
 }

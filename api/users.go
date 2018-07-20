@@ -10,6 +10,8 @@ import (
 	"chirp.com/context"
 	"chirp.com/email"
 	"chirp.com/errors"
+	"chirp.com/internal/utils"
+	"chirp.com/middleware"
 	"chirp.com/models"
 	"chirp.com/pkg/rand"
 	"github.com/gorilla/mux"
@@ -36,6 +38,19 @@ func NewUsers(us models.UserService, ls models.LikeService, fs models.FollowServ
 	}
 }
 
+func ServeUserResource(r *mux.Router, u *Users, m *middleware.RequireUser) {
+	//the handler doesn't use {_username} to look up the Tweet, but the user should be redirected to the correct username if the {_username} doesn't match the Tweet's Username
+	r.HandleFunc("/{username}", u.Show).Methods("GET")
+	r.HandleFunc("/{username}/likes", u.GetLikes).Methods("GET")
+	r.HandleFunc("/{username}/followers", u.GetFollowers).Methods("GET")
+	r.HandleFunc("/{username}/following", u.GetFollowing).Methods("GET")
+	r.HandleFunc("/signup", u.Create).Methods("POST")
+	r.HandleFunc("/login", u.Login).Methods("POST")
+	r.HandleFunc("/logout", m.ApplyFn(u.Logout)).Methods("POST")
+	r.HandleFunc("/{username}/follow", m.ApplyFn(u.FollowUser)).Methods("POST")
+	r.HandleFunc("/{username}/follow/delete", m.ApplyFn(u.UnfollowUser)).Methods("POST")
+}
+
 type SignUpForm struct {
 	Name     string `json:"name"`
 	Username string `json:"username"`
@@ -53,7 +68,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(&form)
 	if err != nil {
-		RenderAPIError(w, errors.InvalidData(err))
+		utils.RenderAPIError(w, errors.InvalidData(err))
 		return
 	}
 	user := models.User{
@@ -63,16 +78,16 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		Password: form.Password,
 	}
 	if err := u.us.Create(&user); err != nil {
-		RenderAPIError(w, errors.SetCustomError(err, &user))
+		utils.RenderAPIError(w, errors.SetCustomError(err, &user))
 		return
 	}
-	u.emailer.Welcome(user.Name, user.Email)
+	// u.emailer.Welcome(user.Name, user.Email)
 	err = u.signIn(w, &user)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err, &user))
+		utils.RenderAPIError(w, errors.SetCustomError(err, &user))
 		return
 	}
-	Render(w, user)
+	utils.Render(w, user)
 }
 
 type LoginForm struct {
@@ -86,7 +101,7 @@ func (u *Users) Show(w http.ResponseWriter, r *http.Request) {
 	if user == nil {
 		return
 	}
-	Render(w, user)
+	utils.Render(w, user)
 }
 
 func (u *Users) getUser(w http.ResponseWriter, r *http.Request) *models.User {
@@ -96,10 +111,10 @@ func (u *Users) getUser(w http.ResponseWriter, r *http.Request) *models.User {
 	if err != nil {
 		switch err {
 		case models.ErrNotFound:
-			RenderAPIError(w, errors.NotFound("User"))
+			utils.RenderAPIError(w, errors.NotFound("User"))
 		default:
 			log.Println(err)
-			RenderAPIError(w, errors.InternalServerError(err))
+			utils.RenderAPIError(w, errors.InternalServerError(err))
 		}
 		return nil
 	}
@@ -117,28 +132,28 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(&form)
 	if err != nil {
-		RenderAPIError(w, errors.InvalidData(err))
+		utils.RenderAPIError(w, errors.InvalidData(err))
 		return
 	}
 	user, err := u.us.Authenticate(form.Email, form.Password)
 	if err != nil {
 		switch err {
 		case models.ErrNotFound:
-			RenderAPIError(w, errors.NotFound("Email"))
+			utils.RenderAPIError(w, errors.NotFound("Email"))
 		// need to add case where password is incorrect
 		default:
-			RenderAPIError(w, errors.SetCustomError(err))
+			utils.RenderAPIError(w, errors.SetCustomError(err))
 		}
 		return
 	}
 
 	err = u.signIn(w, user)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
 
-	Render(w, user)
+	utils.Render(w, user)
 }
 
 // signIn is used to sign the given user in via cookies
@@ -182,7 +197,7 @@ func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
 	//updating the user's rememember token to ensure the user in inaccessable through the expired cookie
 	user := context.User(r.Context())
 	if user == nil {
-		RenderAPIError(w, errors.NotFound("User"))
+		utils.RenderAPIError(w, errors.NotFound("User"))
 		return
 	}
 	token, _ := rand.RememberToken()
@@ -203,10 +218,10 @@ func (u *Users) GetLikes(w http.ResponseWriter, r *http.Request) {
 	}
 	likedTweets, err := u.ls.GetUserLikes(user.ID)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		utils.RenderAPIError(w, errors.SetCustomError(err))
 	}
 	user.LikedTweets = likedTweets
-	Render(w, user)
+	utils.Render(w, user)
 }
 
 // POST /:username/follow
@@ -218,7 +233,7 @@ func (u *Users) FollowUser(w http.ResponseWriter, r *http.Request) {
 	follower := context.User(r.Context())
 	// //can't follow yourself
 	if followee.ID == follower.ID {
-		RenderAPIError(w, errors.SetCustomError(models.ErrFollowSelf, followee))
+		utils.RenderAPIError(w, errors.SetCustomError(models.ErrFollowSelf, followee))
 		return
 	}
 	follow := models.Follow{
@@ -228,11 +243,11 @@ func (u *Users) FollowUser(w http.ResponseWriter, r *http.Request) {
 	}
 	err := u.fs.Create(&follow)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err, followee))
+		utils.RenderAPIError(w, errors.SetCustomError(err, followee))
 		return
 	}
 	u.updateFollowCount(w, followee, follower)
-	Render(w, &follow)
+	utils.Render(w, &follow)
 
 }
 
@@ -245,21 +260,21 @@ func (u *Users) UnfollowUser(w http.ResponseWriter, r *http.Request) {
 	}
 	follow, err := u.fs.GetFollow(followee.ID, follower.ID)
 	if err != nil {
-		RenderAPIError(w, errors.NotFound("Follow on this user"))
+		utils.RenderAPIError(w, errors.NotFound("Follow on this user"))
 		return
 	}
 	err = u.fs.Delete(follow.UserID, follower.ID)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 		return
 	}
 	err = u.updateFollowCount(w, followee, follower)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 		return
 	}
 	follow.User = followee
-	Render(w, followee)
+	utils.Render(w, followee)
 }
 
 // GET /:username/followers
@@ -270,11 +285,11 @@ func (u *Users) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	}
 	followers, err := u.fs.GetUserFollowers(user.ID)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
 	user.Followers = followers
-	Render(w, user)
+	utils.Render(w, user)
 }
 
 // GET /:username/following
@@ -285,11 +300,11 @@ func (u *Users) GetFollowing(w http.ResponseWriter, r *http.Request) {
 	}
 	following, err := u.fs.GetUserFollowing(user.ID)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
 	user.Following = following
-	Render(w, user)
+	utils.Render(w, user)
 }
 
 func (u *Users) updateFollowCount(w http.ResponseWriter, followee, follower *models.User) error {
@@ -297,7 +312,7 @@ func (u *Users) updateFollowCount(w http.ResponseWriter, followee, follower *mod
 	follower.FollowingCount = u.fs.GetTotalFollowing(follower.ID)
 	err := u.us.Update(followee)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 		return err
 	}
 	err = u.us.Update(follower)

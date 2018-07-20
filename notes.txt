@@ -1,9 +1,0 @@
-Project Structure
-
-api/
-models/
--errors.go (maybe)
-services/ (maybe, this will be taken from models)
-errors/
-server.go (package main)
-config.go

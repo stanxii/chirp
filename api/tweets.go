@@ -9,9 +9,10 @@ import (
 
 	"chirp.com/context"
 	"chirp.com/errors"
+	"chirp.com/internal/utils"
+	"chirp.com/middleware"
 	"chirp.com/models"
 	"chirp.com/pkg/unique"
-	"chirp.com/utils"
 	"github.com/gorilla/mux"
 )
 
@@ -21,17 +22,29 @@ type Tweets struct {
 	ls       models.LikeService
 	tagS     models.TagService
 	taggingS models.TaggingService
-	r        *mux.Router
+	// r        *mux.Router
 }
 
-func NewTweets(ts models.TweetService, ls models.LikeService, tagS models.TagService, taggingS models.TaggingService, r *mux.Router) *Tweets {
+func NewTweets(ts models.TweetService, ls models.LikeService, tagS models.TagService, taggingS models.TaggingService) *Tweets {
 	return &Tweets{
 		ts:       ts,
 		ls:       ls,
 		tagS:     tagS,
 		taggingS: taggingS,
-		r:        r,
+		// r:        r,
 	}
+}
+
+func ServeTweetResource(r *mux.Router, t *Tweets, m *middleware.RequireUser) {
+	r.HandleFunc("/i/tweets", m.ApplyFn(t.Index)).Methods("GET")
+	r.HandleFunc("/tweets", m.ApplyFn(t.Create)).Methods("POST")
+	r.HandleFunc("/tweets/{_username}/{id:[0-9]+}/delete", m.ApplyFn(t.Delete)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}", t.Show).Methods("GET")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/update", m.ApplyFn(t.Update)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/like", m.ApplyFn(t.LikeTweet)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/like/delete", m.ApplyFn(t.DeleteLike)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/liked", t.GetUsersWhoLiked).Methods("GET")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/retweet", m.ApplyFn(t.CreateRetweet)).Methods("POST")
 }
 
 type TweetForm struct {
@@ -46,7 +59,7 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(&form)
 	if err != nil {
-		RenderAPIError(w, errors.InvalidData(err))
+		utils.RenderAPIError(w, errors.InvalidData(err))
 		return
 	}
 	user := context.User(r.Context())
@@ -57,7 +70,7 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	err = t.ts.Create(&tweet)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
 	fmt.Println(tweet.ID)
@@ -76,7 +89,7 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 		if err != nil && err != models.ErrTagExists {
 			// fmt.Println(err)
 			// tweet.Tags[i] = name + " is invalid: " + errors.SetCustomError(err).Message
-			RenderAPIError(w, errors.SetCustomError(err, tag))
+			utils.RenderAPIError(w, errors.SetCustomError(err, tag))
 			return
 		}
 		fmt.Println(tweet.ID)
@@ -87,10 +100,10 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 		}
 		err = t.taggingS.Create(tagging)
 		if err != nil {
-			RenderAPIError(w, errors.SetCustomError(err))
+			utils.RenderAPIError(w, errors.SetCustomError(err))
 		}
 	}
-	Render(w, &tweet)
+	utils.Render(w, &tweet)
 }
 
 // POST /tweets/:username/:id/delete
@@ -101,14 +114,14 @@ func (t *Tweets) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	user := context.User(r.Context())
 	if tweet.Username != user.Username {
-		RenderAPIError(w, errors.Unauthorized())
+		utils.RenderAPIError(w, errors.Unauthorized())
 		return
 	}
 	deletedTweet, err := t.ts.Delete(tweet.ID)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 	}
-	Render(w, deletedTweet)
+	utils.Render(w, deletedTweet)
 }
 
 // Get /i/tweets
@@ -117,10 +130,10 @@ func (t *Tweets) Index(w http.ResponseWriter, r *http.Request) {
 	tweets, err := t.ts.ByUsername(user.Username)
 	if err != nil {
 		log.Println(err)
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 		return
 	}
-	Render(w, tweets)
+	utils.Render(w, tweets)
 }
 
 //GET /tweets/:username/:id
@@ -129,7 +142,7 @@ func (t *Tweets) Show(w http.ResponseWriter, r *http.Request) {
 	if tweet == nil {
 		return
 	}
-	Render(w, tweet)
+	utils.Render(w, tweet)
 }
 
 //POST /tweets/:username/:id/update
@@ -140,23 +153,23 @@ func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	user := context.User(r.Context())
 	if tweet.Username != user.Username {
-		RenderAPIError(w, errors.Unauthorized())
+		utils.RenderAPIError(w, errors.Unauthorized())
 		return
 	}
 	var form TweetForm
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(&form)
 	if err != nil {
-		RenderAPIError(w, errors.InvalidData(err))
+		utils.RenderAPIError(w, errors.InvalidData(err))
 		return
 	}
 	tweet.Post = form.Post
 	err = t.ts.Update(tweet)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err))
+		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
-	Render(w, tweet)
+	utils.Render(w, tweet)
 }
 
 func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
@@ -171,14 +184,14 @@ func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
 	}
 	err := t.ls.Create(&like)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err, &tweet))
+		utils.RenderAPIError(w, errors.SetCustomError(err, &tweet))
 		return
 	}
 	err = t.updateLikesCount(w, tweet)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 	}
-	Render(w, tweet)
+	utils.Render(w, tweet)
 }
 
 //POST /:username/:id/like/delete
@@ -191,20 +204,20 @@ func (t *Tweets) DeleteLike(w http.ResponseWriter, r *http.Request) {
 
 	like, err := t.ls.GetLike(tweet.ID, user.ID)
 	if err != nil {
-		RenderAPIError(w, errors.NotFound("Like on this tweet"))
+		utils.RenderAPIError(w, errors.NotFound("Like on this tweet"))
 		return
 	}
 
 	err = t.ls.Delete(like.TweetID, like.UserID)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 		return
 	}
 	err = t.updateLikesCount(w, tweet)
 	if err != nil {
-		RenderAPIError(w, errors.InternalServerError(err))
+		utils.RenderAPIError(w, errors.InternalServerError(err))
 	}
-	Render(w, tweet)
+	utils.Render(w, tweet)
 
 }
 
@@ -216,10 +229,10 @@ func (t *Tweets) GetUsersWhoLiked(w http.ResponseWriter, r *http.Request) {
 	}
 	users, err := t.ls.GetUsers(tweet.ID)
 	if err != nil {
-		RenderAPIError(w, errors.NotFound("Tweet"))
+		utils.RenderAPIError(w, errors.NotFound("Tweet"))
 		return
 	}
-	Render(w, users)
+	utils.Render(w, users)
 }
 
 // POST /tweets/:username/:id/retweet
@@ -237,10 +250,10 @@ func (t *Tweets) CreateRetweet(w http.ResponseWriter, r *http.Request) {
 	}
 	err := t.ts.Create(&retweet)
 	if err != nil {
-		RenderAPIError(w, errors.SetCustomError(err, &retweet))
+		utils.RenderAPIError(w, errors.SetCustomError(err, &retweet))
 		return
 	}
-	Render(w, retweet)
+	utils.Render(w, retweet)
 }
 
 // func (t *Tweets) createTag(w http.RespnoseWriter, r *http.Request) {
@@ -266,7 +279,7 @@ func (t *Tweets) tweetByID(w http.ResponseWriter, r *http.Request) *models.Tweet
 	id := uint(idInt)
 	if err != nil {
 		log.Println(err)
-		RenderAPIError(w, errors.InvalidData(err))
+		utils.RenderAPIError(w, errors.InvalidData(err))
 		return nil
 	}
 	tweet, err := t.ts.ByID(id)
@@ -274,12 +287,12 @@ func (t *Tweets) tweetByID(w http.ResponseWriter, r *http.Request) *models.Tweet
 		switch err {
 		case models.ErrNotFound:
 			// http.Error(w, "Tweet not found", http.StatusNotFound)
-			RenderAPIError(w, errors.NotFound("Tweet"))
+			utils.RenderAPIError(w, errors.NotFound("Tweet"))
 
 		default:
 			log.Println(err)
 			// http.Error(w, "Whoops! Something went wrong.", http.StatusInternalServerError)
-			RenderAPIError(w, errors.InternalServerError(err))
+			utils.RenderAPIError(w, errors.InternalServerError(err))
 		}
 		return nil
 	}

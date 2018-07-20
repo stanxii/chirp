@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"time"
 
+	"chirp.com/internal/utils"
 	"chirp.com/pkg/hash"
 	"chirp.com/pkg/rand"
-	"chirp.com/utils"
 	"github.com/jinzhu/gorm"
 
 	"golang.org/x/crypto/bcrypt"
@@ -21,13 +21,13 @@ type User struct {
 	Username  string     `gorm:"not null;unique_index" json:"username"`
 	Name      string     `json:"name,omitempty"`
 	Email     string     `gorm:"not null;unique_index" json:"email,omitempty"`
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at,omitempty"`
+	UpdatedAt time.Time  `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 
 	// LikedTweets    []Tweet `gorm:"foreignkey:UserID;association_foreignkey:UserID" json:"likes,omitempty"`
-	FollowerCount  uint    `json:"followerCount"`
-	FollowingCount uint    `json:"followingCount"`
+	FollowerCount  uint    `json:"followerCount,omitempty"`
+	FollowingCount uint    `json:"followingCount,omitempty"`
 	LikedTweets    []Tweet `json:"likes,omitempty"`
 	Followers      []User  `json:"followers,omitempty"`
 	Following      []User  `json:"followng,omitempty"`
