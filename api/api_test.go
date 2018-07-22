@@ -6,24 +6,23 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
-	"chirp.com/models"
 	"github.com/stretchr/testify/assert"
 )
 
 type apiTestCase struct {
-	tag    string
-	method string
-	url    string
-	body   interface{}
-	status int
-	got    interface{}
-	want   interface{}
+	tag      string
+	method   string
+	url      string
+	body     interface{}
+	status   int
+	loggedIn bool //sets remember_token on http cookie
+	got      map[string]interface{}
+	want     interface{}
 }
 
-func testAPI(router http.Handler, method, URL string, body interface{}) *httptest.ResponseRecorder {
+func testAPI(router http.Handler, method, URL string, body interface{}, loggedIn bool) *httptest.ResponseRecorder {
 	var bodyBytes []byte
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -36,9 +35,17 @@ func testAPI(router http.Handler, method, URL string, body interface{}) *httptes
 	}
 	req, _ := http.NewRequest(method, URL, bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
+	if loggedIn {
+		cookie := http.Cookie{
+			Name:     "remember_token",
+			Value:    "ke3kO2KwD4HjC2lqhYWDD17T3aKXanDN1qiMLQLq1LI=",
+			HttpOnly: true,
+		}
+		req.AddCookie(&cookie)
+	}
+	fmt.Printf("req: %+v\n", req)
+
 	res := httptest.NewRecorder()
-	// Drop a cookie on the recorder.
-	SetPreferencesCookie(res, &Preferences{Colour: "Blue"})
 	router.ServeHTTP(res, req)
 	return res
 }
@@ -47,62 +54,40 @@ func runAPITests(t *testing.T, router http.Handler, tests []apiTestCase) {
 	for _, test := range tests {
 		t.Run(test.tag, func(t *testing.T) {
 
-			res := testAPI(router, test.method, test.url, test.body)
-			fmt.Println("body\n", res.Body)
+			res := testAPI(router, test.method, test.url, test.body, test.loggedIn)
 
-			dec := json.NewDecoder(res.Body)
+			if test.want != nil {
+				dec := json.NewDecoder(res.Body)
+				err := dec.Decode(&test.got)
+				if err != nil {
+					t.Error(err)
+				}
+				//delete all json fields we want to ignore
+				delete(test.got, "created_at")
+				delete(test.got, "updated_at")
+				delete(test.got, "deleted_at")
+				for k, v := range test.got {
+					switch x := v.(type) {
+					case []interface{}:
+						for _, value := range x {
+							v, ok := value.(map[string]interface{})
+							if ok {
+								delete(v, "created_at")
+								delete(v, "updated_at")
+								delete(v, "deleted_at")
+							}
+						}
+					default:
+						fmt.Printf("Unsupported type: %T\n", x)
+					}
 
-			err := dec.Decode(&test.got)
-			test.got = reflect.ValueOf(test.got).Elem().Interface() //convert back to its original type
-			switch v := test.got.(type) {
-			case models.User:
-				test.got = sanitize(&v)
-			default:
-				test.got = &test.got
-			}
+					fmt.Printf("\nkey[%s] value[%s]\n", k, v)
+				}
 
-			if err != nil {
-				fmt.Printf("%+v\n", res)
-				t.Fatal(err)
+				assert.Equal(t, test.want, test.got, test.tag)
 			}
 
 			assert.Equal(t, test.status, res.Code, test.tag)
-			assert.Equal(t, test.want, test.got, test.tag)
 		})
 	}
-}
-
-// func TestAPI(t *testing.T) {
-// 	router := app.NewRouter()
-// 	router.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
-// 		sample := &sample{Msg: "hello"}
-// 		utils.Render(w, sample)
-// 	})
-
-// 	want := sample{
-// 		Msg: "hello",
-// 	}
-// 	runAPITests(t, router, []apiTestCase{
-// 		{"t1 - say hi", "GET", "/hi", "", http.StatusOK, &sample{}, want},
-// 	})
-// }
-
-// type sample struct {
-// 	Msg string
-// }
-
-type Preferences struct {
-	Colour string
-}
-
-func SetPreferencesCookie(w http.ResponseWriter, prefs *Preferences) error {
-	// data, err := json.Marshal(prefs)
-	// if err != nil {
-	// 	return err
-	// }
-	http.SetCookie(w, &http.Cookie{
-		Name:  "test",
-		Value: "hi",
-	})
-	return nil
 }

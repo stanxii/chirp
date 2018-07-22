@@ -118,8 +118,6 @@ func (u *Users) getUser(w http.ResponseWriter, r *http.Request) *models.User {
 		}
 		return nil
 	}
-	// userWithLikes, err := u.us.UserDB.GetLikes(user)
-	// err = u.us.AttachAssociations(user)
 	return user
 }
 
@@ -185,7 +183,6 @@ func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 //
 // POST /logout
 func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("hello from LOGOUT")
 	cookie := http.Cookie{
 		Name:     "remember_token",
 		Value:    "",
@@ -193,6 +190,7 @@ func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, &cookie)
+	fmt.Println("IN LOGGED OUT METHOD")
 
 	//updating the user's rememember token to ensure the user in inaccessable through the expired cookie
 	user := context.User(r.Context())
@@ -283,7 +281,10 @@ func (u *Users) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	if user == nil {
 		return
 	}
+	fmt.Printf("USER:%+v", user.ID)
+
 	followers, err := u.fs.GetUserFollowers(user.ID)
+
 	if err != nil {
 		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -32,14 +33,23 @@ func (mw *User) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 		}
 		cookie, err := r.Cookie("remember_token")
 		if err != nil {
+			fmt.Println("No cookie!")
+
 			next(w, r)
 			return
 		}
+		fmt.Println(cookie.Value)
+
 		user, err := mw.userService.ByRemember(cookie.Value)
 		if err != nil {
+			fmt.Println(" nothing on remember token")
+			fmt.Println(err)
+
 			next(w, r)
 			return
 		}
+		fmt.Println(user)
+
 		ctx := r.Context()
 		ctx = context.WithUser(ctx, user)
 		r = r.WithContext(ctx)
@@ -66,6 +76,8 @@ func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := context.User(r.Context())
 		if user == nil {
+			fmt.Println("No user on require user")
+
 			utils.RenderAPIError(w, errors.Unauthorized("You must be logged in to perform this action."))
 			return
 		}

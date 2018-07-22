@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS follows;
 
 CREATE TABLE public.users
 (
@@ -40,12 +41,43 @@ VALUES
 INSERT INTO public.users
     ("name", username, email)
 VALUES
-    ('Dua Lipa', 'duasings007', 'dua@lipa.com');
+    ('Dua Lipa', 'duasings', 'dua@lipa.com');
 
 INSERT INTO public.users
     ("name", username, email)
 VALUES
     ('Bob Dylan', 'bobbyd', 'bob@dylan.com');
+
+-- this user's remember_hash based on
+-- HMACKey: "secret-hmac-key" 
+-- remember token: "ke3kO2KwD4HjC2lqhYWDD17T3aKXanDN1qiMLQLq1LI="
+INSERT INTO public.users
+    ("name", username, email, remember_hash)
+VALUES
+    ('Tom Tester', 'tommyTesterton', 'tommy@gmail.com', 'fe62al6IpvpqvVke8hQTgQqWyi59d1Z7ZGXSC00kTf8=');
+
+-- Drop table
+
+-- DROP TABLE public.follows
+
+CREATE TABLE public.follows
+(
+    follower_id serial NOT NULL,
+    user_id serial NOT NULL,
+    CONSTRAINT follows_pkey PRIMARY KEY (follower_id, user_id)
+)
+WITH (
+	OIDS=FALSE
+) ;
+
+INSERT INTO public.follows
+    (follower_id, user_id)
+VALUES(1, 4);
+INSERT INTO public.follows
+    (follower_id, user_id)
+VALUES(2, 4);
+
+
 
 -- Insert Tweets
 
