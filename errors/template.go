@@ -42,6 +42,7 @@ func NewAPIError(status int, code string, params Params) *APIError {
 
 	if template, ok := templates[code]; ok {
 		err.Message = template.getMessage(params)
+
 		err.DeveloperMessage = template.getDeveloperMessage(params)
 	}
 

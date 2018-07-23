@@ -53,7 +53,7 @@ func SetCustomError(err error, data ...interface{}) *APIError {
 		apiErr = NewAPIError(http.StatusUnprocessableEntity, "UNPROCESSABLE_ENTITY", Params{"message": pErr.Public()})
 	} else {
 		log.Println(err)
-		apiErr = InternalServerError(err)
+		apiErr = InvalidData(err)
 	}
 
 	if len(data) >= 1 {

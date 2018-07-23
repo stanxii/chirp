@@ -1,26 +1,34 @@
 package app
 
 import (
-	"flag"
 	"fmt"
 
 	"chirp.com/errors"
+	"chirp.com/internal/utils"
+	"chirp.com/models"
 	"github.com/gorilla/mux"
 )
 
-func Init() Config {
-	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a .config file is provided before the application starts.")
-	flag.Parse()
-
-	cfg := LoadConfig(*boolPtr)
+func Init(cfg Config) *models.Services {
+	dbCfg := cfg.Database
+	services, err := models.NewServices(
+		models.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
+		models.WithLogMode(!cfg.IsProd()),
+		models.WithUser(cfg.Pepper, cfg.HMACKey),
+		models.WithTweet(),
+		models.WithTag(),
+		models.WithTagging(),
+		models.WithLike(),
+		models.WithFollow(),
+	)
+	utils.Must(err)
+	services.AutoMigrate()
 
 	// load error messages
-	if err := errors.LoadMessages("config/errors.yaml"); err != nil {
+	if err := errors.LoadMessages("../config/errors.yaml"); err != nil {
 		panic(fmt.Errorf("Failed to read the error message file: %s", err))
 	}
-
-	return cfg
-
+	return services
 }
 
 func NewRouter() *mux.Router {

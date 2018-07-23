@@ -1,34 +1,22 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 
 	"chirp.com/api"
 	"chirp.com/app"
 	"chirp.com/email"
-	"chirp.com/internal/utils"
 	"chirp.com/middleware"
-	"chirp.com/models"
 )
 
 func main() {
-	cfg := app.Init()
-	dbCfg := cfg.Database
-	services, err := models.NewServices(
-		models.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
-		models.WithLogMode(!cfg.IsProd()),
-		models.WithUser(cfg.Pepper, cfg.HMACKey),
-		models.WithTweet(),
-		models.WithTag(),
-		models.WithTagging(),
-		models.WithLike(),
-		models.WithFollow(),
-	)
-	utils.Must(err)
+	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a .config file is provided before the application starts.")
+	flag.Parse()
+	cfg := app.LoadConfig(*boolPtr)
+	services := app.Init(cfg)
 	defer services.Close()
-	services.AutoMigrate()
-
 	mgCfg := cfg.Mailgun
 	emailer := email.NewClient(
 		email.WithSender("Lenslocked.com Support", "support@mg.lenslocked.com"),

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"regexp"
 	"time"
 
@@ -26,11 +27,11 @@ type User struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 
 	// LikedTweets    []Tweet `gorm:"foreignkey:UserID;association_foreignkey:UserID" json:"likes,omitempty"`
-	FollowerCount  uint    `json:"followerCount,omitempty"`
-	FollowingCount uint    `json:"followingCount,omitempty"`
-	LikedTweets    []Tweet `json:"likes,omitempty"`
-	Followers      []User  `json:"followers,omitempty"`
-	Following      []User  `json:"followng,omitempty"`
+	// FollowerCount  uint    `json:"followerCount,omitempty"`
+	// FollowingCount uint    `json:"followingCount,omitempty"`
+	LikedTweets []Tweet `json:"likes,omitempty"`
+	Followers   []User  `json:"followers,omitempty"`
+	Following   []User  `json:"following,omitempty"`
 
 	Password     string `gorm:"-" json:"-"`
 	PasswordHash string `gorm:"not null"  json:"-"`
@@ -319,6 +320,7 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 		return nil
 	}
 	token, err := rand.RememberToken()
+	fmt.Println("remember token: ", user.Remember)
 	if err != nil {
 		return err
 	}

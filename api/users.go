@@ -17,6 +17,19 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func ServeUserResource(r *mux.Router, u *Users, m *middleware.RequireUser) {
+	//the handler doesn't use {_username} to look up the Tweet, but the user should be redirected to the correct username if the {_username} doesn't match the Tweet's Username
+	r.HandleFunc("/{username}", u.Show).Methods("GET")
+	r.HandleFunc("/{username}/likes", u.GetLikes).Methods("GET")
+	r.HandleFunc("/{username}/followers", u.GetFollowers).Methods("GET")
+	r.HandleFunc("/{username}/following", u.GetFollowing).Methods("GET")
+	r.HandleFunc("/signup", u.Create).Methods("POST")
+	r.HandleFunc("/login", u.Login).Methods("POST")
+	r.HandleFunc("/logout", m.ApplyFn(u.Logout)).Methods("POST")
+	r.HandleFunc("/{username}/follow", m.ApplyFn(u.FollowUser)).Methods("POST")
+	r.HandleFunc("/{username}/follow/delete", m.ApplyFn(u.UnfollowUser)).Methods("POST")
+}
+
 type Users struct {
 	us      models.UserService
 	ts      models.TweetService
@@ -36,19 +49,6 @@ func NewUsers(us models.UserService, ls models.LikeService, fs models.FollowServ
 		fs:      fs,
 		emailer: emailer,
 	}
-}
-
-func ServeUserResource(r *mux.Router, u *Users, m *middleware.RequireUser) {
-	//the handler doesn't use {_username} to look up the Tweet, but the user should be redirected to the correct username if the {_username} doesn't match the Tweet's Username
-	r.HandleFunc("/{username}", u.Show).Methods("GET")
-	r.HandleFunc("/{username}/likes", u.GetLikes).Methods("GET")
-	r.HandleFunc("/{username}/followers", u.GetFollowers).Methods("GET")
-	r.HandleFunc("/{username}/following", u.GetFollowing).Methods("GET")
-	r.HandleFunc("/signup", u.Create).Methods("POST")
-	r.HandleFunc("/login", u.Login).Methods("POST")
-	r.HandleFunc("/logout", m.ApplyFn(u.Logout)).Methods("POST")
-	r.HandleFunc("/{username}/follow", m.ApplyFn(u.FollowUser)).Methods("POST")
-	r.HandleFunc("/{username}/follow/delete", m.ApplyFn(u.UnfollowUser)).Methods("POST")
 }
 
 type SignUpForm struct {
@@ -173,6 +173,9 @@ func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 		Value:    user.Remember,
 		HttpOnly: true,
 	}
+	fmt.Println("remember token: ", user.Remember)
+	fmt.Println("remember hash: ", user.RememberHash)
+
 	http.SetCookie(w, &cookie)
 	return nil
 }
@@ -244,7 +247,11 @@ func (u *Users) FollowUser(w http.ResponseWriter, r *http.Request) {
 		utils.RenderAPIError(w, errors.SetCustomError(err, followee))
 		return
 	}
-	u.updateFollowCount(w, followee, follower)
+	// err = u.updateFollowCount(w, followee, follower)
+	// if err != nil {
+	// 	utils.RenderAPIError(w, errors.InternalServerError(err))
+	// 	return
+	// }
 	utils.Render(w, &follow)
 
 }
@@ -266,11 +273,11 @@ func (u *Users) UnfollowUser(w http.ResponseWriter, r *http.Request) {
 		utils.RenderAPIError(w, errors.InternalServerError(err))
 		return
 	}
-	err = u.updateFollowCount(w, followee, follower)
-	if err != nil {
-		utils.RenderAPIError(w, errors.InternalServerError(err))
-		return
-	}
+	// err = u.updateFollowCount(w, followee, follower)
+	// if err != nil {
+	// 	utils.RenderAPIError(w, errors.InternalServerError(err))
+	// 	return
+	// }
 	follow.User = followee
 	utils.Render(w, followee)
 }
@@ -308,20 +315,21 @@ func (u *Users) GetFollowing(w http.ResponseWriter, r *http.Request) {
 	utils.Render(w, user)
 }
 
-func (u *Users) updateFollowCount(w http.ResponseWriter, followee, follower *models.User) error {
-	followee.FollowerCount = u.fs.GetTotalFollowers(followee.ID)
-	follower.FollowingCount = u.fs.GetTotalFollowing(follower.ID)
-	err := u.us.Update(followee)
-	if err != nil {
-		utils.RenderAPIError(w, errors.InternalServerError(err))
-		return err
-	}
-	err = u.us.Update(follower)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func (u *Users) updateFollowCount(w http.ResponseWriter, followee, follower *models.User) error {
+// 	followee.FollowerCount = u.fs.GetTotalFollowers(followee.ID)
+// 	follower.FollowingCount = u.fs.GetTotalFollowing(follower.ID)
+// 	err := u.us.Update(followee)
+// 	if err != nil {
+
+// 		return err
+// 	}
+// 	err = u.us.Update(follower)
+// 	if err != nil {
+
+// 		return err
+// 	}
+// 	return nil
+// }
 
 /*
 // ResetPwForm is used to process the forgot password form

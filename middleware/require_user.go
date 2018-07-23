@@ -42,8 +42,6 @@ func (mw *User) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 
 		user, err := mw.userService.ByRemember(cookie.Value)
 		if err != nil {
-			fmt.Println(" nothing on remember token")
-			fmt.Println(err)
 
 			next(w, r)
 			return
@@ -76,7 +74,6 @@ func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := context.User(r.Context())
 		if user == nil {
-			fmt.Println("No user on require user")
 
 			utils.RenderAPIError(w, errors.Unauthorized("You must be logged in to perform this action."))
 			return

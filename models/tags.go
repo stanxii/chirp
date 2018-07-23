@@ -12,8 +12,8 @@ import (
 
 type Tag struct {
 	ID        uint       `gorm:"primary_key" json:"-"`
-	Name      string     `gorm:"not null;unique_index" json:"tagName,omitempty"`
-	tweets    []Tweet    `json:"tweets"`
+	Name      string     `gorm:"not null;unique_index" json:"tag_name,omitempty"`
+	Tweets    []Tweet    `json:"tweets"`
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
