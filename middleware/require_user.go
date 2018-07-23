@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -33,12 +32,10 @@ func (mw *User) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 		}
 		cookie, err := r.Cookie("remember_token")
 		if err != nil {
-			fmt.Println("No cookie!")
 
 			next(w, r)
 			return
 		}
-		fmt.Println(cookie.Value)
 
 		user, err := mw.userService.ByRemember(cookie.Value)
 		if err != nil {
@@ -46,7 +43,6 @@ func (mw *User) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 			next(w, r)
 			return
 		}
-		fmt.Println(user)
 
 		ctx := r.Context()
 		ctx = context.WithUser(ctx, user)

@@ -9,7 +9,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func Init(cfg Config) *models.Services {
+func Setup(cfg Config) *models.Services {
+	fmt.Println("========================== LOOK HERE ==========================")
+
 	dbCfg := cfg.Database
 	services, err := models.NewServices(
 		models.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),

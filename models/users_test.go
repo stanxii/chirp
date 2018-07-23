@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"testing"
 
 	"chirp.com/pkg/hash"
@@ -29,7 +28,6 @@ func TestUserDB(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(user)
 }
 
 const (

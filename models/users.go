@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"regexp"
 	"time"
 
@@ -320,7 +319,6 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 		return nil
 	}
 	token, err := rand.RememberToken()
-	fmt.Println("remember token: ", user.Remember)
 	if err != nil {
 		return err
 	}

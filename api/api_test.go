@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,7 +30,6 @@ func testAPI(router http.Handler, method, URL string, body interface{}, remember
 	var bodyBytes []byte
 	if body != nil {
 		b, err := json.Marshal(body)
-		fmt.Println(string(b))
 
 		if err != nil {
 			panic(err)
@@ -68,6 +66,7 @@ func runAPITests(t *testing.T, router http.Handler, tests []apiTestCase) {
 				}
 				//delete all json fields we want to ignore
 				deleteUnwantedFields(test.got)
+
 				assert.Equal(t, test.want, test.got, test.tag)
 			}
 
@@ -84,7 +83,6 @@ func toMap(d interface{}) map[string]interface{} {
 	}
 	json.Unmarshal(inrec, &inInterface)
 	deleteUnwantedFields(inInterface)
-	fmt.Printf("map: %+v\n", inInterface)
 	return inInterface
 }
 
@@ -96,7 +94,7 @@ func deleteFields(m map[string]interface{}) {
 
 func deleteUnwantedFields(m map[string]interface{}) {
 	deleteFields(m)
-	for k, v := range m {
+	for _, v := range m {
 		switch x := v.(type) {
 		case []interface{}:
 			for _, value := range x {
@@ -108,9 +106,8 @@ func deleteUnwantedFields(m map[string]interface{}) {
 		case map[string]interface{}:
 			deleteFields(x)
 		default:
-			fmt.Printf("Unsupported type: %T\n", x)
+			// fmt.Printf("Unsupported type: %T\n", x)
 		}
 
-		fmt.Printf("\nkey[%s] value[%s]\n", k, v)
 	}
 }

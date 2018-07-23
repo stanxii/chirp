@@ -15,7 +15,7 @@ func main() {
 	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a .config file is provided before the application starts.")
 	flag.Parse()
 	cfg := app.LoadConfig(*boolPtr)
-	services := app.Init(cfg)
+	services := app.Setup(cfg)
 	defer services.Close()
 	mgCfg := cfg.Mailgun
 	emailer := email.NewClient(

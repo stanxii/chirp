@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -173,8 +172,8 @@ func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 		Value:    user.Remember,
 		HttpOnly: true,
 	}
-	fmt.Println("remember token: ", user.Remember)
-	fmt.Println("remember hash: ", user.RememberHash)
+	// fmt.Println("remember token: ", user.Remember)
+	// fmt.Println("remember hash: ", user.RememberHash)
 
 	http.SetCookie(w, &cookie)
 	return nil
@@ -193,7 +192,6 @@ func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, &cookie)
-	fmt.Println("IN LOGGED OUT METHOD")
 
 	//updating the user's rememember token to ensure the user in inaccessable through the expired cookie
 	user := context.User(r.Context())
@@ -288,7 +286,6 @@ func (u *Users) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	if user == nil {
 		return
 	}
-	fmt.Printf("USER:%+v", user.ID)
 
 	followers, err := u.fs.GetUserFollowers(user.ID)
 

@@ -8,42 +8,44 @@ import (
 	"chirp.com/middleware"
 	"chirp.com/models"
 	"chirp.com/testdata"
-	"github.com/gorilla/mux"
 )
 
-func setUpTests(router *mux.Router) *models.Services {
-
+func setUpTests() (*models.Services, http.Handler) {
+	router := app.NewRouter()
 	cfg := testdata.TestConfig
-	services := app.Init(cfg)
+	services := app.Setup(cfg)
 	testdata.ResetDB(cfg)
 	usersAPI := NewUsers(services.User, services.Like, services.Follow, nil)
+	tweetsAPI := NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
 	//init middleware
 	userMw := middleware.NewUserMw(services.User)
 	requireUserMw := middleware.NewRequireUserMw(userMw)
 	ServeUserResource(router, usersAPI, &requireUserMw)
-	return services
+	ServeTweetResource(router, tweetsAPI, &requireUserMw)
+	return services, userMw.Apply(router)
 }
 
-func TestUser(t *testing.T) {
-	router := app.NewRouter()
-	services := setUpTests(router)
+func TestUsers(t *testing.T) {
+	services, router := setUpTests()
 	defer services.Close()
-	userMw := middleware.NewUserMw(services.User)
 
-	ut := &UsersTest{}
-	ut.CreateUsers()
-	ut.CreateTestCases()
-	runAPITests(t, userMw.Apply(router),
-		ut.testCases,
-	)
+	ut := newUsersTester()
+	testCases := ut.createTestCases()
+	runAPITests(t, router, testCases)
 }
 
-type UsersTest struct {
-	users     map[string]*models.User
-	testCases []apiTestCase
+type usersTester struct {
+	users map[string]*models.User
 }
 
-func (ut *UsersTest) CreateUsers() {
+func newUsersTester() *usersTester {
+	ut := &usersTester{}
+	ut.createUsers()
+	return ut
+
+}
+
+func (ut *usersTester) createUsers() {
 	ut.users = make(map[string]*models.User)
 	ut.users["samsmith"] = &models.User{
 		Username: "samsmith",
@@ -78,8 +80,8 @@ func (ut *UsersTest) CreateUsers() {
 	}
 }
 
-func (ut *UsersTest) CreateTestCases() {
-	ut.testCases = make([]apiTestCase, 0)
+func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
+	// testCases := make([]apiTestCase, 0)
 
 	getUser := apiTestCase{
 		tag:    "Get user's info",
@@ -169,7 +171,7 @@ func (ut *UsersTest) CreateTestCases() {
 		remember: tokenUserRequired,
 	}
 
-	ut.testCases = append(ut.testCases,
+	testCases = append(testCases,
 		getUser,
 		signUpUser,
 		loginUser,
@@ -179,5 +181,6 @@ func (ut *UsersTest) CreateTestCases() {
 		followUser,
 		deleteFollow,
 	)
+	return testCases
 
 }

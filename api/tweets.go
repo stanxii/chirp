@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -73,12 +72,10 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
-	fmt.Println(tweet.ID)
 
 	//create slice of unique and normalized tag names so we don't waste resources
 	//querying duplicate tag names
 	tweet.Tags = unique.Strings(tweet.Tags, utils.NormalizeText)
-	fmt.Println(tweet.Tags)
 
 	for _, name := range tweet.Tags {
 		tag := &models.Tag{
@@ -87,12 +84,9 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 		err := t.tagS.Create(tag)
 
 		if err != nil && err != models.ErrTagExists {
-			// fmt.Println(err)
-			// tweet.Tags[i] = name + " is invalid: " + errors.SetCustomError(err).Message
 			utils.RenderAPIError(w, errors.SetCustomError(err, tag))
 			return
 		}
-		fmt.Println(tweet.ID)
 
 		tagging := &models.Tagging{
 			TweetID: tweet.ID,

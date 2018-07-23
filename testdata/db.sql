@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS follows;
+DROP TABLE IF EXISTS tweets;
 
 CREATE TABLE public.users
 (
@@ -21,6 +22,28 @@ CREATE UNIQUE INDEX uix_users_email ON public.users USING btree
 (email) ;
 CREATE UNIQUE INDEX uix_users_username ON public.users USING btree
 (username) ;
+
+CREATE TABLE public.tweets
+(
+    id serial NOT NULL,
+    post text NULL,
+    username text NOT NULL,
+    likes_count int4 NULL,
+    retweets_count int4 NULL,
+    retweet_id int4 NULL,
+    created_at timestamptz NULL,
+    updated_at timestamptz NULL,
+    deleted_at timestamptz NULL,
+    CONSTRAINT tweets_pkey PRIMARY KEY (id)
+)
+WITH (
+	OIDS=FALSE
+) ;
+CREATE INDEX idx_tweets_deleted_at ON public.tweets USING btree
+(deleted_at) ;
+CREATE INDEX idx_tweets_username ON public.tweets USING btree
+(username) ;
+
 
 -- Insert Users
 INSERT INTO public.users
@@ -88,11 +111,12 @@ VALUES(6, 4);
 
 
 -- Insert Tweets
-
-
-
-
-
+INSERT INTO public.tweets
+    (username, post, retweet_id)
+VALUES('duasings', 'hey, this is my first tweet!', 0);
+INSERT INTO public.tweets
+    (username, post, retweet_id)
+VALUES('duasings', 'second tweets! Lets go', 0);
 
 
 CREATE OR REPLACE FUNCTION addTweets
