@@ -27,7 +27,7 @@ func main() {
 
 	tweetsAPI := api.NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
 	tagsAPI := api.NewTags(services.Tag, services.Tagging)
-	usersAPI := api.NewUsers(services.User, services.Like, services.Follow, emailer)
+	usersAPI := api.NewUsers(services.User, services.Like, services.Follow, services.Tweet, emailer)
 
 	//init middleware
 	userMw := middleware.NewUserMw(services.User)

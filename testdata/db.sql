@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS follows;
 DROP TABLE IF EXISTS tweets;
+DROP TABLE IF EXISTS likes;
 
 CREATE TABLE public.users
 (
@@ -44,6 +45,17 @@ CREATE INDEX idx_tweets_deleted_at ON public.tweets USING btree
 CREATE INDEX idx_tweets_username ON public.tweets USING btree
 (username) ;
 
+CREATE TABLE public.likes
+(
+    tweet_id serial NOT NULL,
+    user_id serial NOT NULL,
+    CONSTRAINT likes_pkey PRIMARY KEY (tweet_id, user_id)
+)
+WITH (
+	OIDS=FALSE
+) ;
+
+
 
 -- Insert Users
 INSERT INTO public.users
@@ -72,14 +84,14 @@ VALUES
 INSERT INTO public.users
     ("name", username, email, password_hash, remember_hash)
 VALUES
-    ('Tom Tester', 'tommyTesterton', 'tommy@gmail.com', 'fake-pw-hash',
+    ('Tom Tester', 'tommytesterton', 'tommy@gmail.com', 'fake-pw-hash',
         'M-QQp9qW_mhAZK5s1651k_ODELJZTP1EBahOOByjfJE=');
 -- this user's remember_hash based on
 -- HMACKey: "secret-hmac-key" 
 INSERT INTO public.users
     ("name", username, email, password_hash, remember_hash)
 VALUES
-    ('Main Tester', 'mainTester', 'mtester@gmail.com', 'fake-pw-hash',
+    ('Vince Main', 'vincetester', 'vtester@gmail.com', 'fake-pw-hash',
         'Dt0b9x7U0tO22dNEX3f1uLMd5STOl5hbDU2ATW6pMjw=');
 
 -- Drop table
@@ -110,13 +122,42 @@ INSERT INTO public.follows
 VALUES(6, 4);
 
 
--- Insert Tweets
+-- Insert 25 tweets
 INSERT INTO public.tweets
-    (username, post, retweet_id)
-VALUES('duasings', 'hey, this is my first tweet!', 0);
+    (id, username, post, retweet_id)
+VALUES(1001, 'duasings', 'Hey, this is my first tweet!', 0);
 INSERT INTO public.tweets
-    (username, post, retweet_id)
-VALUES('duasings', 'second tweets! Lets go', 0);
+    (id, username, post, retweet_id)
+VALUES(1002, 'duasings', 'Second tweet! Let''s go!', 0);
+INSERT INTO public.tweets
+    (id, username, post, retweet_id)
+VALUES(1003, 'bobbyd', 'I love playing the guitar.', 0);
+INSERT INTO public.tweets
+    (id, username, post, retweet_id)
+VALUES(1004, 'vincetester', 'this tweet will be deleted...', 0);
+INSERT INTO public.tweets
+    (id, username, post, retweet_id)
+VALUES(1005, 'vincetester', 'this tweet will be updated...', 0);
+INSERT INTO public.tweets
+    (id, username, post, retweet_id)
+VALUES(1006, 'kanye_west', 'amazing tweet by kanye', 0);
+-- INSERT INTO public.tweets
+--     (id, username, post, retweet_id)
+-- VALUES(1007, 'bobbyd', 'ma', 0);
+INSERT INTO public.likes
+    (tweet_id, user_id)
+VALUES(1003, 1);
+INSERT INTO public.likes
+    (tweet_id, user_id)
+VALUES(1003, 2);
+INSERT INTO public.likes
+    (tweet_id, user_id)
+VALUES(1003, 3);
+INSERT INTO public.likes
+    (tweet_id, user_id)
+VALUES(1006, 6);
+
+
 
 
 CREATE OR REPLACE FUNCTION addTweets

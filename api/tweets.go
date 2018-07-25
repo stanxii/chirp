@@ -15,6 +15,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func ServeTweetResource(r *mux.Router, t *Tweets, m *middleware.RequireUser) {
+	// r.HandleFunc("/i/tweets", m.ApplyFn(t.Index)).Methods("GET")
+	r.HandleFunc("/tweets", m.ApplyFn(t.Create)).Methods("POST")
+	r.HandleFunc("/tweets/{_username}/{id:[0-9]+}/delete", m.ApplyFn(t.Delete)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}", t.Show).Methods("GET")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/update", m.ApplyFn(t.Update)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/like", m.ApplyFn(t.LikeTweet)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/like/delete", m.ApplyFn(t.DeleteLike)).Methods("POST")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/liked", t.GetUsersWhoLiked).Methods("GET")
+	r.HandleFunc("/{_username}/{id:[0-9]+}/retweet", m.ApplyFn(t.CreateRetweet)).Methods("POST")
+}
+
 type Tweets struct {
 	us       models.UserService
 	ts       models.TweetService
@@ -32,18 +44,6 @@ func NewTweets(ts models.TweetService, ls models.LikeService, tagS models.TagSer
 		taggingS: taggingS,
 		// r:        r,
 	}
-}
-
-func ServeTweetResource(r *mux.Router, t *Tweets, m *middleware.RequireUser) {
-	r.HandleFunc("/i/tweets", m.ApplyFn(t.Index)).Methods("GET")
-	r.HandleFunc("/tweets", m.ApplyFn(t.Create)).Methods("POST")
-	r.HandleFunc("/tweets/{_username}/{id:[0-9]+}/delete", m.ApplyFn(t.Delete)).Methods("POST")
-	r.HandleFunc("/{_username}/{id:[0-9]+}", t.Show).Methods("GET")
-	r.HandleFunc("/{_username}/{id:[0-9]+}/update", m.ApplyFn(t.Update)).Methods("POST")
-	r.HandleFunc("/{_username}/{id:[0-9]+}/like", m.ApplyFn(t.LikeTweet)).Methods("POST")
-	r.HandleFunc("/{_username}/{id:[0-9]+}/like/delete", m.ApplyFn(t.DeleteLike)).Methods("POST")
-	r.HandleFunc("/{_username}/{id:[0-9]+}/liked", t.GetUsersWhoLiked).Methods("GET")
-	r.HandleFunc("/{_username}/{id:[0-9]+}/retweet", m.ApplyFn(t.CreateRetweet)).Methods("POST")
 }
 
 type TweetForm struct {
@@ -125,6 +125,7 @@ func (t *Tweets) Index(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		utils.RenderAPIError(w, errors.InternalServerError(err))
+
 		return
 	}
 	utils.Render(w, tweets)

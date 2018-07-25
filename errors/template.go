@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -21,13 +22,17 @@ type (
 var templates map[string]errorTemplate
 
 // LoadMessages reads a YAML file containing error templates.
-func LoadMessages(file string) error {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
+func LoadMessages(files ...string) error {
+
+	for _, file := range files {
+		bytes, err := ioutil.ReadFile(file)
+		if err == nil {
+			templates = map[string]errorTemplate{}
+			return yaml.Unmarshal(bytes, &templates)
+		}
 	}
-	templates = map[string]errorTemplate{}
-	return yaml.Unmarshal(bytes, &templates)
+
+	return errors.New(strings.Join(files, "\n"))
 }
 
 // NewAPIError creates a new APIError with the given HTTP status code, error code, and parameters for replacing placeholders in the error template.

@@ -19,6 +19,7 @@ import (
 func ServeUserResource(r *mux.Router, u *Users, m *middleware.RequireUser) {
 	//the handler doesn't use {_username} to look up the Tweet, but the user should be redirected to the correct username if the {_username} doesn't match the Tweet's Username
 	r.HandleFunc("/{username}", u.Show).Methods("GET")
+	r.HandleFunc("/{username}/tweets", u.GetTweets).Methods("GET")
 	r.HandleFunc("/{username}/likes", u.GetLikes).Methods("GET")
 	r.HandleFunc("/{username}/followers", u.GetFollowers).Methods("GET")
 	r.HandleFunc("/{username}/following", u.GetFollowing).Methods("GET")
@@ -41,11 +42,12 @@ type Users struct {
 // This function will panic if the templates are not
 // parsed correctly, and should only be used during
 // initial setup.
-func NewUsers(us models.UserService, ls models.LikeService, fs models.FollowService, emailer *email.Client) *Users {
+func NewUsers(us models.UserService, ls models.LikeService, fs models.FollowService, ts models.TweetService, emailer *email.Client) *Users {
 	return &Users{
 		us:      us,
 		ls:      ls,
 		fs:      fs,
+		ts:      ts,
 		emailer: emailer,
 	}
 }
@@ -101,6 +103,20 @@ func (u *Users) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.Render(w, user)
+}
+
+//GET /tweets/:username/tweets
+func (u *Users) GetTweets(w http.ResponseWriter, r *http.Request) {
+	user := u.getUser(w, r)
+	if user == nil {
+		return
+	}
+	tweets, err := u.ts.ByUsername(user.Username)
+	if err != nil {
+		utils.RenderAPIError(w, errors.InternalServerError(err))
+		return
+	}
+	utils.Render(w, tweets)
 }
 
 func (u *Users) getUser(w http.ResponseWriter, r *http.Request) *models.User {

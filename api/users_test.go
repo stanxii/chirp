@@ -10,12 +10,23 @@ import (
 	"chirp.com/testdata"
 )
 
+//usernames
+const (
+	samsmith       = "samsmith"
+	kanye_west     = "kanye_west"
+	duasings       = "duasings"
+	bobbyd         = "bobbyd"
+	tommyTesterton = "tommytesterton"
+	vinceTester    = "vincetester"
+	vincentXiao    = "vincent-xiao"
+)
+
 func setUpTests() (*models.Services, http.Handler) {
 	router := app.NewRouter()
 	cfg := testdata.TestConfig
 	services := app.Setup(cfg)
 	testdata.ResetDB(cfg)
-	usersAPI := NewUsers(services.User, services.Like, services.Follow, nil)
+	usersAPI := NewUsers(services.User, services.Like, services.Follow, services.Tweet, nil)
 	tweetsAPI := NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
 	//init middleware
 	userMw := middleware.NewUserMw(services.User)
@@ -47,36 +58,36 @@ func newUsersTester() *usersTester {
 
 func (ut *usersTester) createUsers() {
 	ut.users = make(map[string]*models.User)
-	ut.users["samsmith"] = &models.User{
-		Username: "samsmith",
+	ut.users[samsmith] = &models.User{
+		Username: samsmith,
 		Name:     "Sam Smith",
 		Email:    "sam2018@gmail.com",
 	}
 
-	ut.users["kanye_west"] = &models.User{
-		Username: "kanye_west",
+	ut.users[kanye_west] = &models.User{
+		Username: kanye_west,
 		Name:     "Kanye West",
 		Email:    "kanye@kanye.com",
 	}
-	ut.users["duasings"] = &models.User{
-		Username: "duasings",
+	ut.users[duasings] = &models.User{
+		Username: duasings,
 		Name:     "Dua Lipa",
 		Email:    "dua@lipa.com",
 	}
-	ut.users["bobbyd"] = &models.User{
-		Username: "bobbyd",
+	ut.users[bobbyd] = &models.User{
+		Username: bobbyd,
 		Name:     "Bob Dylan",
 		Email:    "bob@dylan.com",
 	}
 	ut.users["vincent-xiao"] = &models.User{
-		Username: "vincent-xiao",
+		Username: vincentXiao,
 		Name:     "vince",
 		Email:    "vincent@gmail.com",
 	}
-	ut.users["mainTester"] = &models.User{
-		Username: "mainTester",
-		Name:     "Main Tester",
-		Email:    "mtester@gmail.com",
+	ut.users[vinceTester] = &models.User{
+		Username: vinceTester,
+		Name:     "Vince Main",
+		Email:    "vtester@gmail.com",
 	}
 }
 
@@ -88,7 +99,7 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 		method: "GET",
 		url:    "/kanye_west",
 		status: http.StatusOK,
-		want:   toMap(ut.users["kanye_west"]),
+		want:   toMap(ut.users[kanye_west]),
 	}
 
 	signUpUser := apiTestCase{
@@ -96,13 +107,13 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 		method: "POST",
 		body: SignUpForm{
 			Name:     "vince",
-			Username: "vincent-xiao",
+			Username: vincentXiao,
 			Email:    "vincent@gmail.com",
 			Password: "super-secret-password",
 		},
 		url:    "/signup",
 		status: http.StatusOK,
-		want:   toMap(ut.users["vincent-xiao"]),
+		want:   toMap(ut.users[vincentXiao]),
 	}
 
 	loginUser := apiTestCase{
@@ -114,7 +125,7 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 		},
 		url:    "/login",
 		status: http.StatusOK,
-		want:   toMap(ut.users["vincent-xiao"]),
+		want:   toMap(ut.users[vincentXiao]),
 	}
 	logoutUser := apiTestCase{
 		tag:      "logout user",
@@ -124,8 +135,8 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 		remember: tokenAuthTesting,
 	}
 
-	userWithFollowers := *ut.users["bobbyd"]
-	userWithFollowers.Followers = []models.User{*ut.users["samsmith"], *ut.users["kanye_west"], *ut.users["mainTester"]}
+	userWithFollowers := *ut.users[bobbyd]
+	userWithFollowers.Followers = []models.User{*ut.users[samsmith], *ut.users[kanye_west], *ut.users[vinceTester]}
 
 	getFollowers := apiTestCase{
 		tag:    "get user's followers",
@@ -137,8 +148,8 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 
 	// userWithFollowing := copyMap(ut.users["duasings"])
 	// userWithFollowing["following"] = []interface{}{ut.users["kanye_west"]}
-	userWithFollowing := *ut.users["duasings"]
-	userWithFollowing.Following = []models.User{*ut.users["kanye_west"]}
+	userWithFollowing := *ut.users[duasings]
+	userWithFollowing.Following = []models.User{*ut.users[kanye_west]}
 	getFollowing := apiTestCase{
 		tag:    "get users that use is following",
 		method: "GET",
@@ -156,7 +167,7 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 			models.Follow{
 				FollowerID: 6,
 				UserID:     3,
-				User:       ut.users["duasings"],
+				User:       ut.users[duasings],
 			},
 		),
 		remember: tokenUserRequired,
@@ -167,7 +178,7 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 		method:   "POST",
 		url:      "/bobbyd/follow/delete",
 		status:   http.StatusOK,
-		want:     toMap(ut.users["bobbyd"]),
+		want:     toMap(ut.users[bobbyd]),
 		remember: tokenUserRequired,
 	}
 

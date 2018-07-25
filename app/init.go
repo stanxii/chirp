@@ -10,8 +10,6 @@ import (
 )
 
 func Setup(cfg Config) *models.Services {
-	fmt.Println("========================== LOOK HERE ==========================")
-
 	dbCfg := cfg.Database
 	services, err := models.NewServices(
 		models.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
@@ -27,8 +25,9 @@ func Setup(cfg Config) *models.Services {
 	services.AutoMigrate()
 
 	// load error messages
-	if err := errors.LoadMessages("../config/errors.yaml"); err != nil {
-		panic(fmt.Errorf("Failed to read the error message file: %s", err))
+	err = errors.LoadMessages("config/errors.yaml", "../config/errors.yaml")
+	if err != nil {
+		panic(fmt.Errorf("Failed to read the error message file(s): \n%s", err))
 	}
 	return services
 }

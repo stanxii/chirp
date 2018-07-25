@@ -30,7 +30,6 @@ func testAPI(router http.Handler, method, URL string, body interface{}, remember
 	var bodyBytes []byte
 	if body != nil {
 		b, err := json.Marshal(body)
-
 		if err != nil {
 			panic(err)
 		}
@@ -57,54 +56,71 @@ func runAPITests(t *testing.T, router http.Handler, tests []apiTestCase) {
 		t.Run(test.tag, func(t *testing.T) {
 
 			res := testAPI(router, test.method, test.url, test.body, test.remember)
-
-			if test.want != nil {
-				dec := json.NewDecoder(res.Body)
-				err := dec.Decode(&test.got)
-				if err != nil {
-					t.Error(err)
-				}
-				//delete all json fields we want to ignore
-				deleteUnwantedFields(test.got)
-
-				assert.Equal(t, test.want, test.got, test.tag)
-			}
-
 			assert.Equal(t, test.status, res.Code, test.tag)
+			if test.want == nil {
+				return
+			}
+			dec := json.NewDecoder(res.Body)
+			var got interface{}
+			var err error
+			if res.Body.String()[0] == '[' {
+				// got, err = decodeJSONArray(res.Body, dec)
+				// type  []map[string]interface{}
+				array := make([]map[string]interface{}, 0)
+				err = dec.Decode(&array)
+				for _, v := range array {
+					deleteUnwantedFields(v)
+				}
+				got = array
+			} else {
+				err = dec.Decode(&test.got)
+				deleteUnwantedFields(test.got)
+				got = test.got
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			//delete all json fields we want to ignore
+
+			assert.Equal(t, test.want, got, test.tag)
+
 		})
 	}
 }
 
-func toMap(d interface{}) map[string]interface{} {
+func toMap(d interface{}, removeFields ...string) map[string]interface{} {
 	var inInterface map[string]interface{}
 	inrec, err := json.Marshal(d)
 	if err != nil {
 		panic(err)
 	}
 	json.Unmarshal(inrec, &inInterface)
-	deleteUnwantedFields(inInterface)
+	deleteUnwantedFields(inInterface, removeFields...)
 	return inInterface
 }
 
-func deleteFields(m map[string]interface{}) {
-	delete(m, "created_at")
-	delete(m, "updated_at")
-	delete(m, "deleted_at")
+func deleteFields(m map[string]interface{}, fields ...string) {
+	for _, field := range fields {
+		delete(m, field)
+	}
+
 }
 
-func deleteUnwantedFields(m map[string]interface{}) {
-	deleteFields(m)
+func deleteUnwantedFields(m map[string]interface{}, fields ...string) {
+	s := []string{"created_at", "updated_at", "deleted_at"}
+	s = append(s, fields...)
+	deleteFields(m, s...)
 	for _, v := range m {
 		switch x := v.(type) {
 		case []interface{}:
 			for _, value := range x {
 				v, ok := value.(map[string]interface{})
 				if ok {
-					deleteFields(v)
+					deleteFields(v, s...)
 				}
 			}
 		case map[string]interface{}:
-			deleteFields(x)
+			deleteFields(x, s...)
 		default:
 			// fmt.Printf("Unsupported type: %T\n", x)
 		}
