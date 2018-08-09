@@ -60,10 +60,14 @@ func (tt *tweetsTester) createTweets() {
 	}
 
 	tt.tweetsFromTests = make(map[uint]*models.Tweet, 0)
-	count := uint(1)
-	tt.tweetsFromTests[count] = &models.Tweet{
+	tt.tweetsFromTests[1] = &models.Tweet{
 		Username: vinceTester,
 		Post:     "new tweet in testing!",
+	}
+	tt.tweetsFromTests[2] = &models.Tweet{
+		Username:  vinceTester,
+		Retweet:   tt.tweetsFromSetup[1006],
+		RetweetID: 1006,
 	}
 
 	for k, tweet := range tt.tweetsFromSetup {
@@ -73,13 +77,6 @@ func (tt *tweetsTester) createTweets() {
 		tweet.ID = k
 	}
 }
-
-// tt.countTweetsInSetup = uint(len(tt.tweetsFromSetup))
-
-//add ID's to tweets
-// for k, tweet := range tt.tweetsFromSetup {
-// 	tweet.ID = k
-// }
 
 func (tt *tweetsTester) getTweetsByUsername(username string) (ret []map[string]interface{}) {
 	var tweets []*models.Tweet
@@ -189,6 +186,15 @@ func (tt *tweetsTester) createTestCases() (testCases []apiTestCase) {
 		remember: tokenUserRequired,
 	}
 
+	createRetweet := apiTestCase{
+		tag:      "retweet tweet",
+		method:   "POST",
+		url:      "/kanye_west/1006/retweet",
+		status:   http.StatusOK,
+		want:     toMap(tt.tweetsFromTests[2]),
+		remember: tokenUserRequired,
+	}
+
 	testCases = append(testCases,
 		getTweet,
 		postTweet,
@@ -198,6 +204,7 @@ func (tt *tweetsTester) createTestCases() (testCases []apiTestCase) {
 		likeTweet,
 		deleteLike,
 		getUsersWhoLiked,
+		createRetweet,
 	)
 	return testCases
 }

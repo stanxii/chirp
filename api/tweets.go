@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,7 +17,6 @@ import (
 )
 
 func ServeTweetResource(r *mux.Router, t *Tweets, m *middleware.RequireUser) {
-	// r.HandleFunc("/i/tweets", m.ApplyFn(t.Index)).Methods("GET")
 	r.HandleFunc("/tweets", m.ApplyFn(t.Create)).Methods("POST")
 	r.HandleFunc("/tweets/{_username}/{id:[0-9]+}/delete", m.ApplyFn(t.Delete)).Methods("POST")
 	r.HandleFunc("/{_username}/{id:[0-9]+}", t.Show).Methods("GET")
@@ -62,10 +62,11 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user := context.User(r.Context())
+	uniqueTags := unique.Strings(form.Tags, utils.NormalizeText)
 	tweet := models.Tweet{
 		Post:     form.Post,
 		Username: user.Username,
-		Tags:     form.Tags,
+		Tags:     uniqueTags,
 	}
 	err = t.ts.Create(&tweet)
 	if err != nil {
@@ -75,8 +76,12 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 
 	//create slice of unique and normalized tag names so we don't waste resources
 	//querying duplicate tag names
-	tweet.Tags = unique.Strings(tweet.Tags, utils.NormalizeText)
+	t.createTags(w, &tweet)
 
+	utils.Render(w, &tweet)
+}
+
+func (t *Tweets) createTags(w http.ResponseWriter, tweet *models.Tweet) {
 	for _, name := range tweet.Tags {
 		tag := &models.Tag{
 			Name: name,
@@ -88,16 +93,37 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tagging := &models.Tagging{
-			TweetID: tweet.ID,
-			TagID:   tag.ID,
-		}
-		err = t.taggingS.Create(tagging)
+		err = t.createTagging(tweet, tag)
 		if err != nil {
-			utils.RenderAPIError(w, errors.SetCustomError(err))
+			if pErr, ok := err.(errors.PublicError); ok {
+				fmt.Println("Tagging Service: ", pErr.Public(), ": ", tag.Name)
+			} else {
+				log.Println(err)
+			}
+			return
 		}
+
 	}
-	utils.Render(w, &tweet)
+}
+
+func (t *Tweets) createTagging(tweet *models.Tweet, tag *models.Tag) error {
+	tagging := &models.Tagging{
+		TweetID: tweet.ID,
+		TagID:   tag.ID,
+	}
+	err := t.taggingS.Create(tagging)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *Tweets) deleteTagging(tweet *models.Tweet, tag *models.Tag) error {
+	err := t.taggingS.Delete(tag.ID, tweet.ID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // POST /tweets/:username/:id/delete
@@ -159,12 +185,60 @@ func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tweet.Post = form.Post
+	newTags := unique.Strings(form.Tags, utils.NormalizeText)
+	taggings, err := t.taggingS.GetTaggings(tweet.ID)
+	if err != nil {
+		utils.RenderAPIError(w, errors.InternalServerError(err))
+		return
+	}
+	var oldTags []string
+	for _, tagging := range taggings {
+		tag, err := t.tagS.ByID(tagging.TagID)
+		if err != nil {
+			fmt.Println(tagging.TagID, ": ", err)
+			continue
+		}
+		oldTags = append(oldTags, tag.Name)
+	}
+	taggingsToDelete := diff(newTags, oldTags)
+
+	for _, tagname := range taggingsToDelete {
+		tag, err := t.tagS.ByName(tagname)
+		if err != nil {
+			utils.RenderAPIError(w, errors.NotFound(tagname))
+			return
+		}
+
+		err = t.deleteTagging(tweet, tag)
+		if err != nil {
+			utils.RenderAPIError(w, errors.SetCustomError(err))
+			return
+		}
+	}
+	tweet.Tags = newTags
 	err = t.ts.Update(tweet)
 	if err != nil {
 		utils.RenderAPIError(w, errors.SetCustomError(err))
 		return
 	}
+	t.createTags(w, tweet)
 	utils.Render(w, tweet)
+}
+
+func diff(a, b []string) (diff []string) {
+	for _, bStr := range b {
+		var match bool
+		for _, aStr := range a {
+			if aStr == bStr {
+				match = true
+				break
+			}
+		}
+		if !match {
+			diff = append(diff, bStr)
+		}
+	}
+	return diff
 }
 
 func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
@@ -250,11 +324,6 @@ func (t *Tweets) CreateRetweet(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.Render(w, retweet)
 }
-
-// func (t *Tweets) createTag(w http.RespnoseWriter, r *http.Request) {
-// 	var tag models.Tag
-// 	t.tagS.Create(&tag)
-// }
 
 /* HELPER METHODS */
 

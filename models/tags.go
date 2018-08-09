@@ -28,16 +28,9 @@ type tagService struct {
 }
 
 type TagDB interface {
-	// ByID(id uint) (*Tweet, error)
-	// ByUsername(username string) ([]Tweet, error)
-	// ByUsernameAndRetweetID(username string, retweetID uint) (*Tweet, error)
-	// ByUsernameAndID(username string, id uint) (*Tweet, error)
-	// ByUserID(userID uint) ([]Tweet, error)
 	Create(tag *Tag) error
 	ByName(name string) (*Tag, error)
-	// Update(tweet *Tweet) error
-	// Delete(id uint) (*Tweet, error)
-	// CreateRetweet(tweet *Tweet) error
+	ByID(id uint) (*Tag, error)
 }
 
 func NewTagService(db *gorm.DB) TagService {
@@ -141,6 +134,13 @@ func (tg *tagGorm) Create(tag *Tag) error {
 func (tg *tagGorm) ByName(name string) (*Tag, error) {
 	var tag Tag
 	db := tg.db.Where("name = ?", name)
+	err := first(db, &tag)
+	return &tag, err
+}
+
+func (tg *tagGorm) ByID(id uint) (*Tag, error) {
+	var tag Tag
+	db := tg.db.Where("id = ?", id)
 	err := first(db, &tag)
 	return &tag, err
 }

@@ -2,6 +2,8 @@ DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS follows;
 DROP TABLE IF EXISTS tweets;
 DROP TABLE IF EXISTS likes;
+DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS taggings;
 
 CREATE TABLE public.users
 (
@@ -54,6 +56,34 @@ CREATE TABLE public.likes
 WITH (
 	OIDS=FALSE
 ) ;
+
+CREATE TABLE public.tags
+(
+    id serial NOT NULL,
+    "name" text NOT NULL,
+    created_at timestamptz NULL,
+    updated_at timestamptz NULL,
+    deleted_at timestamptz NULL,
+    CONSTRAINT tags_pkey PRIMARY KEY (id)
+)
+WITH (
+	OIDS=FALSE
+) ;
+CREATE UNIQUE INDEX uix_tags_name ON public.tags USING btree
+(name) ;
+
+
+CREATE TABLE public.taggings
+(
+    tag_id serial NOT NULL,
+    tweet_id serial NOT NULL,
+    CONSTRAINT taggings_pkey PRIMARY KEY (tag_id, tweet_id)
+)
+WITH (
+	OIDS=FALSE
+) ;
+
+
 
 
 
@@ -156,6 +186,33 @@ VALUES(1003, 3);
 INSERT INTO public.likes
     (tweet_id, user_id)
 VALUES(1006, 6);
+
+INSERT INTO public.tags
+    ("name")
+VALUES('lakers');
+INSERT INTO public.tags
+    ("name")
+VALUES('warriors');
+
+INSERT INTO public.taggings
+    ("tag_id", "tweet_id")
+VALUES(1, 1001);
+INSERT INTO public.taggings
+    ("tag_id", "tweet_id")
+VALUES(1, 1002);
+INSERT INTO public.taggings
+    ("tag_id", "tweet_id")
+VALUES(1, 1003);
+INSERT INTO public.taggings
+    ("tag_id", "tweet_id")
+VALUES(1, 1005);
+INSERT INTO public.taggings
+    ("tag_id", "tweet_id")
+VALUES(2, 1005);
+
+
+
+
 
 
 

@@ -7,6 +7,7 @@ import (
 
 	"chirp.com/api"
 	"chirp.com/app"
+	"chirp.com/config"
 	"chirp.com/email"
 	"chirp.com/middleware"
 )
@@ -14,7 +15,7 @@ import (
 func main() {
 	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a .config file is provided before the application starts.")
 	flag.Parse()
-	cfg := app.LoadConfig(*boolPtr)
+	cfg := config.LoadConfig(*boolPtr)
 	services := app.Setup(cfg)
 	defer services.Close()
 	mgCfg := cfg.Mailgun

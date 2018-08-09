@@ -64,8 +64,6 @@ func runAPITests(t *testing.T, router http.Handler, tests []apiTestCase) {
 			var got interface{}
 			var err error
 			if res.Body.String()[0] == '[' {
-				// got, err = decodeJSONArray(res.Body, dec)
-				// type  []map[string]interface{}
 				array := make([]map[string]interface{}, 0)
 				err = dec.Decode(&array)
 				for _, v := range array {
@@ -80,7 +78,6 @@ func runAPITests(t *testing.T, router http.Handler, tests []apiTestCase) {
 			if err != nil {
 				t.Error(err)
 			}
-			//delete all json fields we want to ignore
 
 			assert.Equal(t, test.want, got, test.tag)
 

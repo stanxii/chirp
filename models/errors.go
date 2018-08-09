@@ -19,7 +19,9 @@ const (
 	ErrPasswordIncorrect modelError = "models: incorrect password provided"
 
 	ErrUsernameRequired modelError = "models: username is required"
-	ErrNameRequired     modelError = "models: name is required"
+	ErrUsernameNoLetter modelError = "models: username must begin with a letter"
+
+	ErrNameRequired modelError = "models: name is required"
 	// ErrEmailRequired is returned when an email address is
 	// not provided when creating a user
 	ErrEmailRequired modelError = "models: email address is required"
@@ -69,3 +71,6 @@ type privateError string
 func (e privateError) Error() string {
 	return string(e)
 }
+
+// ErrUsernameMin      modelError = "models: length of username must be greater than: "
+// ErrUsernameMax      modelError = "models: length of username must be less than: "

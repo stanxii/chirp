@@ -2,7 +2,9 @@ package models
 
 import (
 	"regexp"
+	"strconv"
 	"time"
+	"unicode"
 
 	"chirp.com/internal/utils"
 	"chirp.com/pkg/hash"
@@ -201,7 +203,10 @@ func (uv *userValidator) ByUsername(username string) (*User, error) {
 	user := User{
 		Username: username,
 	}
-	if err := runUserValFuncs(&user, uv.normalizeUsername); err != nil {
+	if err := runUserValFuncs(&user,
+		uv.normalizeUsername,
+		// uv.charLimit(user.Username, 3, 25),
+	); err != nil {
 		return nil, err
 	}
 	return uv.UserDB.ByUsername(user.Username)
@@ -251,10 +256,13 @@ func (uv *userValidator) Create(user *User) error {
 		uv.emailIsAvail,
 		uv.requireUsername,
 		uv.normalizeUsername,
+		uv.usernameBeginsWithLetter,
+		uv.charLimit("Username", user.Username, 3, 25),
 	)
 	if err != nil {
 		return err
 	}
+	// return nil
 	return uv.UserDB.Create(user)
 }
 
@@ -360,6 +368,28 @@ func (uv *userValidator) idGreaterThan(n uint) userValFunc {
 func (uv *userValidator) normalizeUsername(user *User) error {
 	user.Username = utils.NormalizeText(user.Username)
 	return nil
+}
+
+func (uv *userValidator) usernameBeginsWithLetter(user *User) error {
+	if !unicode.IsLetter(rune(user.Username[0])) {
+		return ErrUsernameNoLetter
+	}
+	return nil
+}
+
+func (uv *userValidator) charLimit(fieldName, field string, min, max uint) userValFunc {
+	return userValFunc(func(user *User) error {
+
+		//'Username must be greater than
+		if len(field) < int(min) {
+			msg := fieldName + " must be at least " + strconv.Itoa(int(min)) + " characters"
+			return modelError(msg)
+		} else if len(field) > int(max) {
+			msg := fieldName + " must be less than " + strconv.Itoa(int(max)) + " characters"
+			return modelError(msg)
+		}
+		return nil
+	})
 }
 
 func (uv *userValidator) requireUsername(user *User) error {

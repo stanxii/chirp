@@ -28,11 +28,13 @@ func setUpTests() (*models.Services, http.Handler) {
 	testdata.ResetDB(cfg)
 	usersAPI := NewUsers(services.User, services.Like, services.Follow, services.Tweet, nil)
 	tweetsAPI := NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
+	tagsAPI := NewTags(services.Tag, services.Tagging)
 	//init middleware
 	userMw := middleware.NewUserMw(services.User)
 	requireUserMw := middleware.NewRequireUserMw(userMw)
 	ServeUserResource(router, usersAPI, &requireUserMw)
 	ServeTweetResource(router, tweetsAPI, &requireUserMw)
+	ServeTagResource(router, tagsAPI, &requireUserMw)
 	return services, userMw.Apply(router)
 }
 
@@ -92,8 +94,6 @@ func (ut *usersTester) createUsers() {
 }
 
 func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
-	// testCases := make([]apiTestCase, 0)
-
 	getUser := apiTestCase{
 		tag:    "Get user's info",
 		method: "GET",
@@ -146,8 +146,6 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 		want:   toMap(userWithFollowers),
 	}
 
-	// userWithFollowing := copyMap(ut.users["duasings"])
-	// userWithFollowing["following"] = []interface{}{ut.users["kanye_west"]}
 	userWithFollowing := *ut.users[duasings]
 	userWithFollowing.Following = []models.User{*ut.users[kanye_west]}
 	getFollowing := apiTestCase{
@@ -193,5 +191,4 @@ func (ut *usersTester) createTestCases() (testCases []apiTestCase) {
 		deleteFollow,
 	)
 	return testCases
-
 }

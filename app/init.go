@@ -3,13 +3,14 @@ package app
 import (
 	"fmt"
 
+	"chirp.com/config"
 	"chirp.com/errors"
 	"chirp.com/internal/utils"
 	"chirp.com/models"
 	"github.com/gorilla/mux"
 )
 
-func Setup(cfg Config) *models.Services {
+func Setup(cfg config.Config) *models.Services {
 	dbCfg := cfg.Database
 	services, err := models.NewServices(
 		models.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),

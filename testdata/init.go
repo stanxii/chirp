@@ -6,11 +6,9 @@ import (
 	"os"
 	"os/exec"
 
-	"chirp.com/app"
+	"chirp.com/config"
 	_ "github.com/lib/pq" // initialize posgresql for test
 )
-
-var TestConfig = app.TestConfig()
 
 func getSQLFile() string {
 	if _, err := os.Stat("testdata/db.sql"); err == nil {
@@ -20,7 +18,7 @@ func getSQLFile() string {
 }
 
 // ResetDB re-create the database schema and re-populate the initial data using the SQL statements in db.sql.
-func ResetDB(cfg app.Config) {
+func ResetDB(cfg config.Config) {
 	dbCfg := cfg.Database
 	out, err := exec.Command("psql", "-U", dbCfg.User, "-d", dbCfg.Name, "-f", getSQLFile()).CombinedOutput()
 	if err != nil {

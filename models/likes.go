@@ -33,7 +33,7 @@ type LikeDB interface {
 	// ByID(id uint) (*Like, error)
 	GetLike(id uint, userID uint) (*Like, error)
 	Create(like *Like) error
-	Delete(id uint, userID uint) error
+	Delete(id, userID uint) error
 	GetTotalLikes(id uint) uint
 	GetUsers(id uint) ([]User, error)
 	GetUserLikes(userID uint) ([]Tweet, error)
