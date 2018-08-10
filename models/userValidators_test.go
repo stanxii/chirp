@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	byID       = "byId"
-	byEmail    = "byEmail"
-	byUsername = "byUsername"
-	byRemember = "byRemember"
-	create     = "create"
-	update     = "update"
-	delete     = "delete"
+	ByID       = "ByID"
+	ByEmail    = "ByEmail"
+	ByUsername = "ByUsername"
+	ByRemember = "ByRemember"
+	Create     = "Create"
+	Update     = "Update"
+	Delete     = "Delete"
 )
 
 // type UserDB
@@ -72,19 +72,51 @@ func newUserValidatorWithMock(mockDB *userDBMock) *userValidator {
 }
 
 type validatorTestCase struct {
-	tag   string //short description of test
-	input interface{}
-	got   interface{}
-	want  interface{}
+	tag     string //short description of test
+	input   interface{}
+	got     interface{}
+	want    interface{}
+	wantErr error
 }
 
-func runValidatorTestCases(t *testing.T, testCases ...validatorTestCase) {
+func setupUserValTests(user *User) (*userDBMock, *userValidator) {
 	mockDB := newUserDBMock(nil)
 	uv := newUserValidatorWithMock(mockDB)
+	return mockDB, uv
+
+}
+
+// func runValidatorTestCases(t *testing.T, valFunc userValFunc, testCases ...validatorTestCase) {
+// 	mockDB, uv := setupUserValTests(nil)
+// 	dbCalls := 0
+// 	for _, test := range testCases {
+// 		t.Run(test.tag, func(t *testing.T) {
+// 			mockDB.On(ByEmail)
+// 			user, err := uv.ByEmail(test.input.(string))
+// 			if err != nil {
+// 				test.got = err
+// 			} else {
+// 				test.got = user.Email
+// 				dbCalls++
+// 			}
+// 			assert.Equal(t, test.want, test.got)
+// 		})
+// 	}
+// 	mockDB.AssertNumberOfCalls(t, ByEmail, dbCalls)
+// }
+
+func TestByEmailValidator(t *testing.T) {
+	tests := []validatorTestCase{
+		{tag: "no uppercase", input: "Hey@GMAIL.coM", want: "hey@gmail.com"},
+		{tag: "no spaces", input: "  nospace @yahoo.com ", want: "nospace@yahoo.com"},
+		{tag: "no empty string", input: "", want: ErrEmailRequired},
+	}
+
+	mockDB, uv := setupUserValTests(nil)
 	dbCalls := 0
-	for _, test := range testCases {
+	for _, test := range tests {
 		t.Run(test.tag, func(t *testing.T) {
-			mockDB.On("ByEmail")
+			mockDB.On(ByEmail)
 			user, err := uv.ByEmail(test.input.(string))
 			if err != nil {
 				test.got = err
@@ -95,24 +127,38 @@ func runValidatorTestCases(t *testing.T, testCases ...validatorTestCase) {
 			assert.Equal(t, test.want, test.got)
 		})
 	}
-	mockDB.AssertNumberOfCalls(t, "ByEmail", dbCalls)
-}
-
-func TestByEmailValidator(t *testing.T) {
-	tests := []validatorTestCase{
-		{tag: "no uppercase", input: "Hey@GMAIL.coM", want: "hey@gmail.com"},
-		{tag: "no spaces", input: "  nospace @yahoo.com ", want: "nospace@yahoo.com"},
-		{tag: "no empty string", input: "", want: ErrEmailRequired},
-	}
-	runValidatorTestCases(t, tests...)
+	mockDB.AssertNumberOfCalls(t, ByEmail, dbCalls)
 }
 
 func TestByUsernameValidator(t *testing.T) {
 	tests := []validatorTestCase{
-		{tag: "no uppercase", input: "Hey@GMAIL.coM", want: "hey@gmail.com"},
-		{tag: "no whitespace", input: "Hey@GMAIL.coM", want: "hey@gmail.com"},
-		{tag: "no whitespace", input: "Hey@GMAIL.coM", want: "hey@gmail.com"},
-		{tag: "no whitespace", input: "Hey@GMAIL.coM", want: "hey@gmail.com"},
+		{tag: "no uppercase", input: "KOBE4EVER", want: "kobe4ever"},
+		{tag: "no spaces", input: " le bron fan  ", want: "lebronfan"},
+		{tag: "doesnt being with non-letter", input: "5guys", wantErr: ErrUsernameNoLetter},
+		{tag: "not enough characters", input: "ab", wantErr: ErrCharMin.customCharLimitError(3, "username")},
+		{tag: "max characters exceeded", input: "abcdefghijklmonpqrustuvwxyz", wantErr: ErrCharMax.customCharLimitError(25, "username")},
+		// {tag: "", input: "5g", err: ErrCharMin.customCharLimitError(3, "username")},
+
 	}
-	runValidatorTestCases(t, tests...)
+	mockDB, uv := setupUserValTests(nil)
+	dbCalls := 0
+	for _, test := range tests {
+		t.Run(test.tag, func(t *testing.T) {
+			mockDB.On(ByUsername)
+			user, err := uv.ByUsername(test.input.(string))
+			if err != nil {
+				test.got = err
+			} else {
+				test.got = user.Username
+				dbCalls++
+			}
+
+			if test.wantErr != nil {
+				assert.Equal(t, test.wantErr, test.got)
+			} else {
+				assert.Equal(t, test.want, test.got)
+			}
+		})
+	}
+	mockDB.AssertNumberOfCalls(t, ByUsername, dbCalls)
 }

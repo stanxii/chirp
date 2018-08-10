@@ -2,7 +2,6 @@ package models
 
 import (
 	"regexp"
-	"strconv"
 	"time"
 	"unicode"
 
@@ -205,7 +204,8 @@ func (uv *userValidator) ByUsername(username string) (*User, error) {
 	}
 	if err := runUserValFuncs(&user,
 		uv.normalizeUsername,
-		// uv.charLimit(user.Username, 3, 25),
+		uv.charLimit("username", user.Username, 3, 25),
+		uv.usernameBeginsWithLetter,
 	); err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func (uv *userValidator) Create(user *User) error {
 		uv.requireUsername,
 		uv.normalizeUsername,
 		uv.usernameBeginsWithLetter,
-		uv.charLimit("Username", user.Username, 3, 25),
+		uv.charLimit("username", user.Username, 3, 25),
 	)
 	if err != nil {
 		return err
@@ -379,14 +379,10 @@ func (uv *userValidator) usernameBeginsWithLetter(user *User) error {
 
 func (uv *userValidator) charLimit(fieldName, field string, min, max uint) userValFunc {
 	return userValFunc(func(user *User) error {
-
-		//'Username must be greater than
-		if len(field) < int(min) {
-			msg := fieldName + " must be at least " + strconv.Itoa(int(min)) + " characters"
-			return modelError(msg)
+		if len(field) <= int(min) {
+			return ErrCharMin.customCharLimitError(min, fieldName)
 		} else if len(field) > int(max) {
-			msg := fieldName + " must be less than " + strconv.Itoa(int(max)) + " characters"
-			return modelError(msg)
+			return ErrCharMax.customCharLimitError(max, fieldName)
 		}
 		return nil
 	})

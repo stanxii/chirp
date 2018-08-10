@@ -1,8 +1,13 @@
 package models
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 const (
+	ErrCharMin          modelError = "models: not enough characters"
+	ErrCharMax          modelError = "models: exceeded max number of characters"
 	ErrFollowSelf       modelError = "models: cannot follow yourself"
 	ErrFollowExists     modelError = "models: you have followed this user already"
 	ErrTagExists        modelError = "models: tag name already exists"
@@ -72,5 +77,12 @@ func (e privateError) Error() string {
 	return string(e)
 }
 
-// ErrUsernameMin      modelError = "models: length of username must be greater than: "
-// ErrUsernameMax      modelError = "models: length of username must be less than: "
+func (e modelError) customCharLimitError(n uint, name string) modelError {
+	if e == ErrCharMin {
+		e = modelError("models: " + name + " must be at least " + strconv.Itoa(int(n)) + " characters")
+	} else if e == ErrCharMax {
+		e = modelError("models: " + name + " must be at least " + strconv.Itoa(int(n)) + " characters")
+	}
+
+	return e
+}

@@ -99,20 +99,6 @@ func (tv *tweetValidator) usernameRequired(t *Tweet) error {
 	return nil
 }
 
-// func (tv *tweetValidator) userIDRequired(t *Tweet) error {
-// 	if t.UserID <= 0 {
-// 		return ErrUserIDRequired
-// 	}
-// 	return nil
-// }
-
-// func (tv *tweetValidator) usernameRequired(t *Tweet) error {
-// 	if t.Username == "" {
-// 		return ErrUsernameRequired
-// 	}
-// 	return nil
-// }
-
 func (tv *tweetValidator) postRequired(t *Tweet) error {
 	if t.RetweetID > 0 {
 		return nil
