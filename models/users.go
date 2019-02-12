@@ -319,6 +319,7 @@ func (uv *userValidator) hmacRemember(user *User) error {
 	if user.Remember == "" {
 		return nil
 	}
+
 	user.RememberHash = uv.hmac.Hash(user.Remember)
 	return nil
 }
@@ -372,7 +373,7 @@ func (uv *userValidator) normalizeUsername(user *User) error {
 
 func (uv *userValidator) usernameBeginsWithLetter(user *User) error {
 	if !unicode.IsLetter(rune(user.Username[0])) {
-		return ErrUsernameNoLetter
+		return ErrUsernameDoesntBeginWithLetter
 	}
 	return nil
 }
@@ -477,6 +478,7 @@ func (uv *userValidator) passwordHashRequired(user *User) error {
 	if user.PasswordHash == "" {
 		return ErrPasswordRequired
 	}
+
 	return nil
 }
 

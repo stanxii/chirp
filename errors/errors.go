@@ -19,6 +19,7 @@ func InternalServerError(err error) *APIError {
 // NotFound creates a new API error representing a resource-not-found error (HTTP 404)
 func NotFound(resource string) *APIError {
 	return NewAPIError(http.StatusNotFound, "NOT_FOUND", Params{"resource": resource})
+
 }
 
 // Unauthorized creates a new API error representing an authentication failure (HTTP 401)
@@ -47,21 +48,19 @@ type PublicError interface {
 	Public() string
 }
 
-func SetCustomError(err error, data ...interface{}) *APIError {
+func SetCustomError(err error, details interface{}, msg string) *APIError {
 	var apiErr *APIError
 	if pErr, ok := err.(PublicError); ok {
-		apiErr = NewAPIError(http.StatusUnprocessableEntity, "UNPROCESSABLE_ENTITY", Params{"message": pErr.Public()})
+		apiErr = NewAPIError(http.StatusUnprocessableEntity,
+			"UNPROCESSABLE_ENTITY",
+			Params{"message": pErr.Public()})
 	} else {
 		log.Println(err)
 		apiErr = InvalidData(err)
 	}
 
-	if len(data) >= 1 {
-		apiErr.Details = data[0]
-	}
-	if len(data) >= 2 {
-		apiErr.Message = data[1].(string)
-	}
+	apiErr.Details = details
+	apiErr.Message = msg
 	return apiErr
 }
 

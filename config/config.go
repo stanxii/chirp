@@ -58,8 +58,8 @@ func DefaultConfig() Config {
 	return Config{
 		Port:     3000,
 		Env:      dev,
-		Pepper:   "secret-random-string",
-		HMACKey:  "secret-hmac-key",
+		Pepper:   "secret-random-pepper-string",
+		HMACKey:  "secret-random-hmac-key",
 		Database: DefaultPostgresConfig(),
 	}
 }
@@ -78,7 +78,7 @@ type MailgunConfig struct {
 }
 
 func LoadConfig(configReq bool) Config {
-	f, err := os.Open("../.config")
+	f, err := os.Open(".config")
 	if err != nil {
 		if configReq {
 			panic(err)

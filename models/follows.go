@@ -5,9 +5,6 @@ import (
 )
 
 type Follow struct {
-	// Tweet    *Tweet `json:"tweet"`
-	// TweetID  uint   `json:"-"`
-	// Username string `json:"-"`
 	FollowerID uint  `json:"follower_id" gorm:"primary_key"`
 	UserID     uint  `json:"user_id" gorm:"primary_key"`
 	User       *User `json:"user"`

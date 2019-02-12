@@ -23,8 +23,8 @@ const (
 	// is used when attempting to authenticate a user.
 	ErrPasswordIncorrect modelError = "models: incorrect password provided"
 
-	ErrUsernameRequired modelError = "models: username is required"
-	ErrUsernameNoLetter modelError = "models: username must begin with a letter"
+	ErrUsernameRequired              modelError = "models: username is required"
+	ErrUsernameDoesntBeginWithLetter modelError = "models: username must begin with a letter"
 
 	ErrNameRequired modelError = "models: name is required"
 	// ErrEmailRequired is returned when an email address is

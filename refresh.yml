@@ -1,15 +1,15 @@
 app_root: .
 ignored_folders:
-- vendor
-- log
-- logs
-- tmp
-- node_modules
-- bin
-- templates
+  - vendor
+  - log
+  - logs
+  - tmp
+  - node_modules
+  - bin
+  - templates
 included_extensions:
-- .go
-- .gohtml
+  - .go
+  - .gohtml
 build_target_path: ""
 build_path: /var/folders/m7/l_c8p2s91bb_ph766r9xdcv40000gn/T/
 build_flags: []

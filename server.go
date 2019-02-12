@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"chirp.com/api"
 	"chirp.com/app"
 	"chirp.com/config"
+	"chirp.com/controllers"
 	"chirp.com/email"
 	"chirp.com/middleware"
 )
@@ -26,9 +26,9 @@ func main() {
 
 	router := app.NewRouter()
 
-	tweetsAPI := api.NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
-	tagsAPI := api.NewTags(services.Tag, services.Tagging)
-	usersAPI := api.NewUsers(services.User, services.Like, services.Follow, services.Tweet, emailer)
+	tweetsAPI := controllers.NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
+	tagsAPI := controllers.NewTags(services.Tag, services.Tagging)
+	usersAPI := controllers.NewUsers(services.User, services.Like, services.Follow, services.Tweet, emailer)
 
 	//init middleware
 	userMw := middleware.NewUserMw(services.User)
@@ -36,15 +36,17 @@ func main() {
 
 	//test route
 	router.HandleFunc("/ping", ping).Methods("GET")
-	//v1 api routes
-	subRouter := router.PathPrefix("/v1").Subrouter()
-	api.ServeUserResource(subRouter, usersAPI, &requireUserMw)
-	api.ServeTweetResource(subRouter, tweetsAPI, &requireUserMw)
-	api.ServeTagResource(subRouter, tagsAPI, &requireUserMw)
+	//api routes
+	subRouter := router.PathPrefix("/api").Subrouter()
+	controllers.ServeUserResource(subRouter, usersAPI, &requireUserMw)
+	controllers.ServeTweetResource(subRouter, tweetsAPI, &requireUserMw)
+	controllers.ServeTagResource(subRouter, tagsAPI, &requireUserMw)
 
-	http.ListenAndServe(":3000", userMw.Apply(router))
+	fmt.Printf("Starting the server on :%d...\n", cfg.Port)
+	http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port),
+		userMw.Apply(router))
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Pinging the server...Success!")
+	fmt.Fprintf(w, "Pinging the server...Success!\n")
 }
