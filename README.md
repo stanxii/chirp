@@ -1,11 +1,12 @@
 # Chirp
-Chirp is a franchise management service powered by a REST API. 
+Chirp is a simplified Twitter clone backed by a REST API written in Go. 
 
 Features:
-  - manage franchisor and franchisee data
-  - invoice and payment system
-  - generate and track franchise fees (ex. royalties and marketing fees based on total sales)
-  - record sales and expenses and generate financial metrics
+- tweet and retweet posts
+- like tweets and view what other users liked
+- add tags in your tweets
+- follow other users
+- user signup and authenticaiton
 
 ## Setup Locally
 ### Requirements
@@ -43,7 +44,7 @@ or install the auto rebuild/rerun tool [Refresh](https://github.com/markbates/re
 ```shell
 refresh
 ```
-to rebuild and re-run the applicatoin when files change. The refresh config file is defined at
+to rerun the applicatoin when files change. The refresh config file is defined at
 [refresh.yml](./refresh.yml)
 
 ### Test Connection

@@ -8,7 +8,6 @@ import (
 )
 
 type Tweet struct {
-	// gorm.Model
 	ID            uint      `gorm:"primary_key" json:"id"`
 	Post          string    `gorm:"not_null" json:"post"`
 	Username      string    `gorm:"not_null;index" json:"username"`
@@ -125,12 +124,6 @@ func (tv *tweetValidator) retweetOnlyOnce(t *Tweet) error {
 	if existing != nil {
 		return ErrRetweetExists
 	}
-	// // We found a user w/ this email address...
-	// // If the found user has the same ID as this user, it is
-	// // an update and this is the same user.
-	// if t.ID != existing.ID {
-	// 	return ErrEmailTaken
-	// }
 	return nil
 }
 
