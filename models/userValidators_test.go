@@ -218,23 +218,6 @@ func TestCreateUserValidator(t *testing.T) {
 		input: shortPw,
 	})
 
-	// hashPw := newDefaultTestUser()
-	// hashPw.Password = ""
-	// // hashPw.RememberHash = mockRememberHash
-	// tests = append(tests, userTestCase{
-	// 	tc:    testCase{tag: "password is hashed"},
-	// 	input: newDefaultTestUser(),
-	// 	want:  *hashPw,
-	// })
-
-	// setRememberOnUser := newDefaultTestUser()
-	// setRememberOnUser.Remember = ""
-	// tests = append(tests, userTestCase{
-	// 	tc:    testCase{tag: "set remember token if unset"},
-	// 	input: setRememberOnUser,
-	// 	want:  setRememberOnUser,
-	// })
-
 	for _, test := range tests {
 		t.Run(test.tc.tag, func(t *testing.T) {
 			mockDB.On(Create)

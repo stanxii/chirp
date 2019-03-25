@@ -25,5 +25,4 @@ func ResetDB(cfg config.Config) {
 		log.Fatalf("Error executing query.\nCommand Output: %s\n%s", out, err.Error())
 	}
 	fmt.Println(string(out))
-
 }

@@ -41,7 +41,6 @@ func NewTweets(ts models.TweetService, ls models.LikeService, tagS models.TagSer
 		ls:       ls,
 		tagS:     tagS,
 		taggingS: taggingS,
-		// r:        r,
 	}
 }
 
@@ -50,7 +49,9 @@ type TweetForm struct {
 	Tags []string `json:"tags"`
 }
 
-// POST /tweets
+/*
+Creates tweet
+ */
 func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 	var form TweetForm
 
@@ -73,13 +74,13 @@ func (t *Tweets) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//create slice of unique and normalized tag names so we don't waste resources
-	//querying duplicate tag names
 	t.createTags(w, &tweet)
-
 	utils.Render(w, &tweet)
 }
 
+/*
+Creates the tags in the given tweet
+ */
 func (t *Tweets) createTags(w http.ResponseWriter, tweet *models.Tweet) {
 	for _, name := range tweet.Tags {
 		tag := &models.Tag{
@@ -105,6 +106,9 @@ func (t *Tweets) createTags(w http.ResponseWriter, tweet *models.Tweet) {
 	}
 }
 
+/*
+ Create taggings associated with the tweet and tag
+ */
 func (t *Tweets) createTagging(tweet *models.Tweet, tag *models.Tag) error {
 	tagging := &models.Tagging{
 		TweetID: tweet.ID,
@@ -117,6 +121,9 @@ func (t *Tweets) createTagging(tweet *models.Tweet, tag *models.Tag) error {
 	return nil
 }
 
+/*
+Deletes the tagging between tweet and tag
+ */
 func (t *Tweets) deleteTagging(tweet *models.Tweet, tag *models.Tag) error {
 	err := t.taggingS.Delete(tag.ID, tweet.ID)
 	if err != nil {
@@ -125,7 +132,9 @@ func (t *Tweets) deleteTagging(tweet *models.Tweet, tag *models.Tag) error {
 	return nil
 }
 
-// POST /tweets/:username/:id/delete
+/*
+Deletes the tweet
+ */
 func (t *Tweets) Delete(w http.ResponseWriter, r *http.Request) {
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
@@ -143,7 +152,9 @@ func (t *Tweets) Delete(w http.ResponseWriter, r *http.Request) {
 	utils.Render(w, deletedTweet)
 }
 
-// Get /i/tweets
+/*
+Get tweets posted by the active user
+ */
 func (t *Tweets) Index(w http.ResponseWriter, r *http.Request) {
 	user := context.User(r.Context())
 	tweets, err := t.ts.ByUsername(user.Username)
@@ -156,7 +167,9 @@ func (t *Tweets) Index(w http.ResponseWriter, r *http.Request) {
 	utils.Render(w, tweets)
 }
 
-//GET /tweets/:username/:id
+/*
+Get the tweet from the given user
+ */
 func (t *Tweets) Show(w http.ResponseWriter, r *http.Request) {
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
@@ -165,7 +178,9 @@ func (t *Tweets) Show(w http.ResponseWriter, r *http.Request) {
 	utils.Render(w, tweet)
 }
 
-//POST /tweets/:username/:id/update
+/*
+Updates the tweet
+ */
 func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
@@ -184,11 +199,29 @@ func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tweet.Post = form.Post
+	err = t.updateTags(tweet, w, form)
+	if err != nil {
+		return
+	}
+
+	err = t.ts.Update(tweet)
+	if err != nil {
+		utils.RenderAPIError(w, errors.SetCustomError(err, nil, ""))
+		return
+	}
+	t.createTags(w, tweet)
+	utils.Render(w, tweet)
+}
+
+/*
+Update the tags associated with the tweet
+ */
+func (t *Tweets) updateTags(tweet *models.Tweet, w http.ResponseWriter, form TweetForm) error {
 	newTags := unique.Strings(form.Tags, utils.NormalizeText)
 	taggings, err := t.taggingS.GetTaggings(tweet.ID)
 	if err != nil {
 		utils.RenderAPIError(w, errors.InternalServerError(err))
-		return
+		return err
 	}
 	var oldTags []string
 	for _, tagging := range taggings {
@@ -205,25 +238,23 @@ func (t *Tweets) Update(w http.ResponseWriter, r *http.Request) {
 		tag, err := t.tagS.ByName(tagname)
 		if err != nil {
 			utils.RenderAPIError(w, errors.NotFound(tagname))
-			return
+			return err
 		}
 
 		err = t.deleteTagging(tweet, tag)
 		if err != nil {
 			utils.RenderAPIError(w, errors.SetCustomError(err, nil, ""))
-			return
+			return err
 		}
 	}
 	tweet.Tags = newTags
-	err = t.ts.Update(tweet)
-	if err != nil {
-		utils.RenderAPIError(w, errors.SetCustomError(err, nil, ""))
-		return
-	}
-	t.createTags(w, tweet)
-	utils.Render(w, tweet)
+	return nil
 }
 
+/*
+Get differences between the two slices
+Note: Using inefficent algo at the moment. Can be optimized using a map.
+ */
 func diff(a, b []string) (diff []string) {
 	for _, bStr := range b {
 		var match bool
@@ -240,6 +271,9 @@ func diff(a, b []string) (diff []string) {
 	return diff
 }
 
+/*
+Add a like to the tweet
+ */
 func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
 	tweet := t.tweetByID(w, r)
 	if tweet == nil {
@@ -262,7 +296,9 @@ func (t *Tweets) LikeTweet(w http.ResponseWriter, r *http.Request) {
 	utils.Render(w, tweet)
 }
 
-//POST /:username/:id/like/delete
+/*
+Remove like from the tweet
+ */
 func (t *Tweets) DeleteLike(w http.ResponseWriter, r *http.Request) {
 	user := context.User(r.Context())
 	tweet := t.tweetByID(w, r)
@@ -326,6 +362,9 @@ func (t *Tweets) CreateRetweet(w http.ResponseWriter, r *http.Request) {
 
 /* HELPER METHODS */
 
+/*
+Updates number of likes on the tweet
+ */
 func (t *Tweets) updateLikesCount(w http.ResponseWriter, tweet *models.Tweet) error {
 	tweet.LikesCount = t.ls.GetTotalLikes(tweet.ID)
 	err := t.ts.Update(tweet)
@@ -335,6 +374,9 @@ func (t *Tweets) updateLikesCount(w http.ResponseWriter, tweet *models.Tweet) er
 	return nil
 }
 
+/*
+Get tweet by tweet's ID
+ */
 func (t *Tweets) tweetByID(w http.ResponseWriter, r *http.Request) *models.Tweet {
 	vars := mux.Vars(r)
 	idStr := vars["id"]

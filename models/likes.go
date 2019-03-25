@@ -30,7 +30,6 @@ type likeValidator struct {
 }
 
 type LikeDB interface {
-	// ByID(id uint) (*Like, error)
 	GetLike(id uint, userID uint) (*Like, error)
 	Create(like *Like) error
 	Delete(id, userID uint) error

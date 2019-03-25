@@ -8,7 +8,7 @@ import (
 )
 
 func TestTags(t *testing.T) {
-	services, router := setUpTests()
+	services, router := getSetup()
 	defer services.Close()
 	tt := newTweetsTester()
 	ut := newUsersTester()

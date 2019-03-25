@@ -8,7 +8,7 @@ import (
 )
 
 func TestTweets(t *testing.T) {
-	services, router := setUpTests()
+	services, router := getSetup()
 	defer services.Close()
 
 	tt := newTweetsTester()
@@ -102,14 +102,6 @@ func (tt *tweetsTester) createTestCases() (testCases []apiTestCase) {
 		status: http.StatusOK,
 		want:   toMap(tt.tweetsFromSetup[1001]),
 	}
-	// getSelfTweets := apiTestCase{
-	// 	tag:      "get all self tweets",
-	// 	method:   "GET",
-	// 	url:      "/i/tweets",
-	// 	status:   http.StatusOK,
-	// 	want:     tt.getTweetsByUsername(vinceTester),
-	// 	remember: tokenUserRequired,
-	// }
 	getUserTweets := apiTestCase{
 		tag:      "get all user tweets",
 		method:   "GET",

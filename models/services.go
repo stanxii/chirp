@@ -91,28 +91,13 @@ type Services struct {
 	Follow  FollowService
 	Tag     TagService
 	Tagging TaggingService
-	// Image ImageService
-	db *gorm.DB
+	db      *gorm.DB
 }
 
 // Closes the database connection
 func (s *Services) Close() error {
 	return s.db.Close()
 }
-
-// // DestructiveReset drops all tables and rebuilds them
-// func (s *Services) DestructiveReset() error {
-// 	err := s.db.DropTableIfExists(&User{}, &Tweet{}, &Like{}, &pwReset{}).Error
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return s.AutoMigrate()
-// }
-
-// // AutoMigrate will attempt to automatically migrate all tables
-// func (s *Services) AutoMigrate() error {
-// 	return s.db.AutoMigrate(&User{}, &Tweet{}, &Like{}, &pwReset{}).Error
-// }
 
 // DestructiveReset drops all tables and rebuilds them
 func (s *Services) DestructiveReset() error {

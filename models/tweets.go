@@ -41,12 +41,9 @@ type TweetDB interface {
 	ByID(id uint) (*Tweet, error)
 	ByUsername(username string) ([]Tweet, error)
 	ByUsernameAndRetweetID(username string, retweetID uint) (*Tweet, error)
-	// ByUsernameAndID(username string, id uint) (*Tweet, error)
-	// ByUserID(userID uint) ([]Tweet, error)
 	Create(tweet *Tweet) error
 	Update(tweet *Tweet) error
 	Delete(id uint) (*Tweet, error)
-	// CreateRetweet(tweet *Tweet) error
 }
 
 func NewTweetService(db *gorm.DB) TweetService {

@@ -1,14 +1,10 @@
 package controllers
 
 import (
-	"chirp.com/config"
 	"net/http"
 	"testing"
 
-	"chirp.com/app"
-	"chirp.com/middleware"
 	"chirp.com/models"
-	"chirp.com/testdata"
 )
 
 //usernames
@@ -22,25 +18,8 @@ const (
 	vincentXiao    = "vincent-xiao"
 )
 
-func setUpTests() (*models.Services, http.Handler) {
-	router := app.NewRouter()
-	cfg := config.TestConfig()
-	services := app.Setup(cfg)
-	testdata.ResetDB(cfg)
-	usersAPI := NewUsers(services.User, services.Like, services.Follow, services.Tweet, nil)
-	tweetsAPI := NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
-	tagsAPI := NewTags(services.Tag, services.Tagging)
-	//init middleware
-	userMw := middleware.NewUserMw(services.User)
-	requireUserMw := middleware.NewRequireUserMw(userMw)
-	ServeUserResource(router, usersAPI, &requireUserMw)
-	ServeTweetResource(router, tweetsAPI, &requireUserMw)
-	ServeTagResource(router, tagsAPI, &requireUserMw)
-	return services, userMw.Apply(router)
-}
-
 func TestUsers(t *testing.T) {
-	services, router := setUpTests()
+	services, router := getSetup()
 	defer services.Close()
 
 	ut := newUsersTester()

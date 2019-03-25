@@ -6,16 +6,6 @@ import (
 )
 
 const (
-	ErrCharMin          modelError = "models: not enough characters"
-	ErrCharMax          modelError = "models: exceeded max number of characters"
-	ErrFollowSelf       modelError = "models: cannot follow yourself"
-	ErrFollowExists     modelError = "models: you have followed this user already"
-	ErrTagExists        modelError = "models: tag name already exists"
-	ErrTagNoSpecialChar modelError = "models: no special characters allowed"
-	ErrTaggingExists    modelError = "models: tag associated with this tweet already exists"
-	ErrLikeExists       modelError = "models: you have liked this tweet already"
-	ErrRetweetExists    modelError = "models: you have retweeted this tweet already"
-	// ErrFollowSelf modelError = "models: "
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
 	ErrNotFound modelError = "models: resource not found"
@@ -42,10 +32,6 @@ const (
 	// ErrPasswordTooShort is returned when an update or create is
 	// attempted with a user password that is less than 8 characters.
 	ErrPasswordTooShort modelError = "models: password must be at least 8 characters long"
-	ErrPostRequired     modelError = "models: post is required"
-
-	ErrTokenInvalid modelError = "models: token provided is not valid"
-
 	// ErrIDInvalid is returned when an invalid ID is provided
 	// to a method like Delete.
 	ErrIDInvalid privateError = "models: ID provided was invalid"
@@ -55,7 +41,19 @@ const (
 	// ErrRememberTooShort is returned when a remember token is
 	// not at least 32 bytes
 	ErrRememberTooShort privateError = "models: remember token must be at least 32 bytes"
+
 	ErrUserIDRequired   privateError = "models: user ID is required"
+	ErrCharMin          modelError   = "models: not enough characters"
+	ErrCharMax          modelError   = "models: exceeded max number of characters"
+	ErrFollowSelf       modelError   = "models: cannot follow yourself"
+	ErrFollowExists     modelError   = "models: you have followed this user already"
+	ErrTagExists        modelError   = "models: tag name already exists"
+	ErrTagNoSpecialChar modelError   = "models: no special characters allowed"
+	ErrTaggingExists    modelError   = "models: tag associated with this tweet already exists"
+	ErrLikeExists       modelError   = "models: you have liked this tweet already"
+	ErrRetweetExists    modelError   = "models: you have retweeted this tweet already"
+	ErrPostRequired     modelError   = "models: post is required"
+	ErrTokenInvalid     modelError   = "models: token provided is not valid"
 )
 
 type modelError string

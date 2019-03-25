@@ -2,6 +2,11 @@ package controllers
 
 import (
 	"bytes"
+	"chirp.com/app"
+	"chirp.com/config"
+	"chirp.com/middleware"
+	"chirp.com/models"
+	"chirp.com/testdata"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,11 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	tokenAuthTesting  = "CxblHnxYhskXGkVmbwbwPF8_i4fKXH4JWHY-qKzgLfE="
-	tokenUserRequired = "UoQNgRSTJckrZFFAMlNXValG5c3IVmiL9oNspreQykY="
-)
-
+/*
+Struct for creating test cases
+ */
 type apiTestCase struct {
 	tag      string
 	method   string
@@ -26,6 +29,9 @@ type apiTestCase struct {
 	want     interface{}
 }
 
+/*
+Tests the given API endpoint
+ */
 func testAPI(router http.Handler, method, URL string, body interface{}, remember string) *httptest.ResponseRecorder {
 	var bodyBytes []byte
 	if body != nil {
@@ -119,6 +125,30 @@ func deleteUnwantedFields(m map[string]interface{}, fields ...string) {
 		default:
 			// fmt.Printf("Unsupported type: %T\n", x)
 		}
-
 	}
 }
+
+func getSetup() (*models.Services, http.Handler) {
+	router := app.NewRouter()
+	cfg := config.TestConfig()
+	services := app.Setup(cfg)
+	testdata.ResetDB(cfg)
+	usersAPI := NewUsers(services.User, services.Like, services.Follow, services.Tweet, nil)
+	tweetsAPI := NewTweets(services.Tweet, services.Like, services.Tag, services.Tagging)
+	tagsAPI := NewTags(services.Tag, services.Tagging)
+	//init middleware
+	userMw := middleware.NewUserMw(services.User)
+	requireUserMw := middleware.NewRequireUserMw(userMw)
+	ServeUserResource(router, usersAPI, &requireUserMw)
+	ServeTweetResource(router, tweetsAPI, &requireUserMw)
+	ServeTagResource(router, tagsAPI, &requireUserMw)
+	return services, userMw.Apply(router)
+}
+
+/*
+WARNING: Authentication for api tests must be reconfigured!
+ */
+const (
+	tokenAuthTesting  = ""
+	tokenUserRequired = ""
+)

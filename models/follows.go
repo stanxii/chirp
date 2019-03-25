@@ -30,7 +30,6 @@ type followValidator struct {
 }
 
 type FollowDB interface {
-	// ByID(id uint) (*Follow, error)
 	Create(follow *Follow) error
 	GetFollow(userID uint, followerID uint) (*Follow, error)
 	GetUserFollowers(id uint) ([]User, error)
@@ -38,8 +37,6 @@ type FollowDB interface {
 	Delete(userID uint, followerID uint) error
 	GetTotalFollowers(id uint) uint
 	GetTotalFollowing(id uint) uint
-	// GetUsers(id uint) ([]User, error)
-	// GetUserFollows(username string) ([]Tweet, error)
 }
 
 type followValFunc func(*Follow) error

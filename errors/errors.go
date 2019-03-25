@@ -67,25 +67,3 @@ func SetCustomError(err error, details interface{}, msg string) *APIError {
 func NewStdError() error {
 	return errors.New("")
 }
-
-// InvalidData converts a data validation error into an API error (HTTP 400)
-// func InvalidData(errs validation.Errors) *APIError {
-// 	result := []validationError{}}
-// 	fields := []string{}
-// 	for field := range errs {
-// 		fields = append(fields, field)
-// 	}
-// 	sort.Strings(fields)
-// 	for _, field := range fields {
-// 		err := errs[field]
-// 		result = append(result, validationError{
-// 			Field: field,
-// 			Error: err.Error(),
-// 		})
-// 	}
-
-// 	err := NewAPIError(http.StatusBadRequest, "INVALID_DATA", nil)
-// 	err.Details = result
-
-// 	return err
-// }

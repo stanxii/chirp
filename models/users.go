@@ -26,9 +26,6 @@ type User struct {
 	UpdatedAt time.Time  `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 
-	// LikedTweets    []Tweet `gorm:"foreignkey:UserID;association_foreignkey:UserID" json:"likes,omitempty"`
-	// FollowerCount  uint    `json:"followerCount,omitempty"`
-	// FollowingCount uint    `json:"followingCount,omitempty"`
 	LikedTweets []Tweet `json:"likes,omitempty"`
 	Followers   []User  `json:"followers,omitempty"`
 	Following   []User  `json:"following,omitempty"`
@@ -56,8 +53,6 @@ type UserDB interface {
 	ByEmail(email string) (*User, error)
 	ByUsername(username string) (*User, error)
 	ByRemember(token string) (*User, error)
-	// AttachAssociations(user *User) error
-	// Methods for altering users
 	Create(user *User) error
 	Update(user *User) error
 	Delete(id uint) error
